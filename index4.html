@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestNYSE Pro | Portal Financeiro Global</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0b0e11;
+            --bg-panel: #151a21;
+            --bg-hover: #1e232b;
+            --text-primary: #e0e0e0;
+            --text-secondary: #9ca3af;
+            
+            /* Cores Financeiras Profissionais */
+            --up-green: #00c076;
+            --down-red: #ff3b30;
+            --accent-blue: #3b82f6;
+            --accent-gold: #f59e0b;
+            
+            --border-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; letter-spacing: -0.5px; }
+        .text-green { color: var(--up-green) !important; }
+        .text-red { color: var(--down-red) !important; }
+        .bg-green-subtle { background: rgba(0, 192, 118, 0.15); color: var(--up-green); }
+        .bg-red-subtle { background: rgba(255, 59, 48, 0.15); color: var(--down-red); }
+
+        /* Navbar */
+        .navbar {
+            background-color: rgba(11, 14, 17, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand { font-weight: 800; letter-spacing: -0.5px; color: #fff !important; }
+        .navbar-brand span { color: var(--accent-blue); }
+        
+        .nav-link {
+            color: var(--text-secondary) !important;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+        .nav-link:hover, .nav-link.active { color: var(--accent-blue) !important; }
+
+        .btn-terminal {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--accent-blue);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 0.4rem 1rem;
+            transition: all 0.3s;
+        }
+        .btn-terminal:hover { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+
+        /* Search & Autocomplete */
+        .search-container { position: relative; width: 300px; }
+        .search-input {
+            background-color: #1a202c;
+            border: 1px solid var(--border-color);
+            color: #fff;
+            font-size: 0.9rem;
+        }
+        .search-input:focus { background-color: #1a202c; border-color: var(--accent-blue); color: #fff; box-shadow: none; }
+        
+        .autocomplete-list {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: var(--bg-panel); border: 1px solid var(--border-color);
+            z-index: 9999; list-style: none; padding: 0; margin: 0;
+            max-height: 400px; overflow-y: auto; display: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .autocomplete-list.active { display: block; }
+        .autocomplete-item {
+            padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .autocomplete-item:hover { background: var(--bg-hover); }
+        .ac-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #2d3748; color: #a0aec0; margin-left: 8px; }
+
+        /* Ticker Tape */
+        .ticker-wrap {
+            position: fixed; top: 62px; width: 100%; background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color); overflow: hidden; height: 32px; line-height: 32px; z-index: 999;
+        }
+        .ticker-item { display: inline-block; padding: 0 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; border-right: 1px solid var(--border-color); }
+
+        /* Views Structure */
+        .view-section { display: none; padding-top: 94px; min-height: calc(100vh - 350px); animation: fadeIn 0.4s ease; flex-grow: 1; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Panels */
+        .panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem; position: relative; overflow: hidden; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border-color); }
+        .panel-title { font-size: 1rem; font-weight: 700; color: #fff; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .panel-link { font-size: 0.8rem; color: var(--accent-blue); text-decoration: none; }
+
+        /* News Specifics */
+        .news-card { display: flex; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); transition: transform 0.2s; }
+        .news-card:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .news-card:hover { transform: translateX(5px); }
+        .news-thumb { width: 100px; height: 70px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+        .news-content { flex-grow: 1; }
+        .news-meta { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .news-title { font-size: 0.95rem; font-weight: 600; line-height: 1.4; color: #fff; margin-bottom: 6px; cursor: pointer; }
+        .news-title:hover { color: var(--accent-blue); }
+        .ticker-tag { 
+            font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); 
+            background: rgba(59, 130, 246, 0.1); padding: 1px 6px; border-radius: 3px; 
+            cursor: pointer; border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .ticker-tag:hover { background: var(--accent-blue); color: #fff; }
+
+        /* Market Movers Table */
+        .table-movers th { font-size: 0.7rem; color: var(--text-secondary); background: transparent; border-bottom: 1px solid var(--border-color); font-weight: 600; text-transform: uppercase; }
+        .table-movers td { font-size: 0.85rem; color: #fff; background: transparent; border-bottom: 1px solid var(--border-color); vertical-align: middle; padding: 10px 8px; }
+        .table-movers tr:last-child td { border-bottom: none; }
+
+        /* Login Overlay */
+        #login-view { padding-top: 0; align-items: center; justify-content: center; height: 100vh; background: #0b0e11; z-index: 2000; position: fixed; top: 0; left: 0; width: 100%; }
+        .login-card { width: 100%; max-width: 400px; background: var(--bg-panel); border: 1px solid var(--border-color); padding: 2rem; border-radius: 8px; }
+
+        /* Hero Banner Styles */
+        .hero-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; height: 400px; margin-bottom: 2rem; }
+        .hero-main { 
+            position: relative; border-radius: 6px; overflow: hidden; background-size: cover; background-position: center; 
+            display: flex; align-items: flex-end; cursor: pointer;
+        }
+        .hero-overlay { background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.1)); width: 100%; padding: 2rem; }
+        .hero-side { display: flex; flex-direction: column; gap: 1.25rem; }
+        .hero-sub { 
+            flex: 1; position: relative; border-radius: 6px; overflow: hidden; background-size: cover; background-position: center;
+            display: flex; align-items: flex-end; padding: 1rem; cursor: pointer;
+        }
+        .hero-sub h4 { font-size: 1rem; font-weight: 700; color: #fff; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+
+        /* Footer Styles */
+        footer {
+            background-color: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+            padding: 3rem 0 1.5rem;
+            margin-top: 4rem;
+            font-size: 0.9rem;
+        }
+        .footer-brand { font-weight: 800; font-size: 1.5rem; color: #fff; letter-spacing: -0.5px; margin-bottom: 1rem; display: block; text-decoration: none; }
+        .footer-brand span { color: var(--accent-blue); }
+        .footer-text { color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .footer-heading { color: #fff; font-weight: 700; margin-bottom: 1.2rem; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+        .footer-links { list-style: none; padding: 0; margin: 0; }
+        .footer-links li { margin-bottom: 0.8rem; }
+        .footer-links a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--accent-blue); }
+        .social-links a { color: var(--text-secondary); margin-right: 1rem; font-size: 1.2rem; transition: color 0.2s; }
+        .social-links a:hover { color: #fff; }
+        .footer-bottom { border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 2rem; text-align: center; color: var(--text-secondary); font-size: 0.8rem; }
+
+        /* Technical Analysis Specifics */
+        .signal-badge { font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; }
+        .signal-buy { background: rgba(0, 192, 118, 0.2); color: var(--up-green); border: 1px solid rgba(0, 192, 118, 0.3); }
+        .signal-sell { background: rgba(255, 59, 48, 0.2); color: var(--down-red); border: 1px solid rgba(255, 59, 48, 0.3); }
+        .signal-neutral { background: rgba(108, 117, 125, 0.2); color: #adb5bd; border: 1px solid rgba(108, 117, 125, 0.3); }
+        
+        /* Form row for DRIP calc */
+        .form-row-calc {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .form-row-calc label {
+            width: 50%;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .form-row-calc .input-group-calc {
+            width: 45%;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .form-row-calc .input-group-calc .form-control {
+            padding-right: 0.5rem !important; /* Adjust padding for value inputs */
+        }
+        
+        /* Acoes Page Specifics */
+        .acoes-header { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem; }
+        .gauge-container { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .gauge-circle { width: 100px; height: 100px; border-radius: 50%; border: 6px solid #1a202c; position: relative; overflow: hidden; }
+        .gauge-inner { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; 
+            background: conic-gradient(var(--up-green) 0% 33%, var(--accent-gold) 33% 66%, var(--down-red) 66% 100%);
+            transform: rotate(45deg); /* To align the buy/sell spectrum */
+        }
+        .gauge-needle {
+            position: absolute; top: 50%; left: 50%; width: 2px; height: 48px; 
+            background: #fff; transform-origin: top center; 
+            transition: transform 1s ease-in-out;
+            border-radius: 2px;
+            z-index: 10;
+        }
+        .gauge-center-mask { position: absolute; top: 10px; left: 10px; width: 80px; height: 80px; border-radius: 50%; background: var(--bg-panel); z-index: 50; }
+        .gauge-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 0.75rem; color: #fff; z-index: 100; }
+        .acoes-nav .nav-link { font-size: 0.9rem; font-weight: 500; padding: 0.5rem 1rem; }
+        .acoes-nav .nav-link.active { background-color: var(--accent-blue); color: #fff !important; }
+
+        @media(max-width: 992px) { .hero-grid { grid-template-columns: 1fr; height: auto; } .hero-main { height: 300px; } .hero-side { height: 300px; } }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="#" onclick="app.router('home')">
+                INVEST<span>NYSE</span> PRO
+            </a>
+            <button class="navbar-toggler navbar-dark" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navContent">
+                <ul class="navbar-nav me-auto ms-3">
+                    <li class="nav-item"><a class="nav-link active" onclick="app.router('home')" data-target="home">Mercados</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="app.router('acoes'); app.loadStockDetails('NVDA');" data-target="acoes">Ações</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="app.router('noticias')" data-target="noticias">Notícias</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="app.router('dividendos')" data-target="dividendos">Dividendos</a></li>
+                </ul>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <div class="search-container">
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control search-input" id="global-search" placeholder="Buscar Ticker..." autocomplete="off">
+                        </div>
+                        <ul class="autocomplete-list" id="search-results"></ul>
+                    </div>
+                    <div class="border-start border-secondary ps-3 d-flex align-items-center text-secondary small">
+                        <i class="fas fa-circle text-success me-2" style="font-size: 8px;"></i>
+                        <span id="market-status">ABERTO</span>
+                    </div>
+                    <button class="btn btn-terminal btn-sm" onclick="app.router('login')">LOGIN</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Ticker Tape -->
+    <div class="ticker-wrap">
+        <div class="ticker-move" id="ticker-content"></div>
+    </div>
+
+    <!-- ================= PAGE: HOME ================= -->
+    <section id="home" class="view-section active">
+        <div class="container-fluid px-4">
+            
+            <!-- TOP HERO GRID (PORTAL STYLE) -->
+            <div class="hero-grid">
+                <!-- Main Story -->
+                <div class="hero-main" style="background-image: url('https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1200');" onclick="app.loadNewsDetails(1)">
+                    <div class="hero-overlay">
+                        <span class="badge bg-danger mb-2">DESTAQUE GLOBAL</span>
+                        <h1 class="display-6 fw-bold text-white mb-2">Fed Mantém Taxas e Mercados Disparam</h1>
+                        <p class="text-light opacity-75 mb-0 d-none d-md-block">S&P 500 e Nasdaq renovam máximas históricas com impulso de Tech e otimismo sobre cortes de juros.</p>
+                        <div class="mt-3">
+                            <span class="ticker-tag" onclick="event.stopPropagation(); app.loadTicker('SPY')">SPY</span>
+                            <span class="ticker-tag" onclick="event.stopPropagation(); app.loadTicker('QQQ')">QQQ</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Side Stories -->
+                <div class="hero-side">
+                    <div class="hero-sub" style="background-image: url('https://images.unsplash.com/photo-1565514020176-87219f646e00?q=80&w=600');" onclick="app.loadNewsDetails(2)">
+                        <div class="w-100" style="background: linear-gradient(to top, #000, transparent);">
+                            <span class="badge bg-success mb-1">BRASIL</span>
+                            <h4>Petrobras (PETR4) pagará dividendos recordes este ano.</h4>
+                        </div>
+                    </div>
+                    <div class="hero-sub" style="background-image: url('https://images.unsplash.com/photo-1621416894569-0f39ed31d247?q=80&w=600');" onclick="app.loadNewsDetails(3)">
+                        <div class="w-100" style="background: linear-gradient(to top, #000, transparent);">
+                            <span class="badge bg-warning text-dark mb-1">CRIPTO</span>
+                            <h4>Bitcoin supera resistência de $68k com fluxo de ETFs.</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT COLUMNS -->
+            <div class="row g-4">
+                <!-- Left: Market Data & News -->
+                <div class="col-lg-8">
+                    
+                    <!-- Indices Strip -->
+                    <div class="panel p-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center overflow-auto gap-4" id="indices-strip">
+                            <!-- JS Generated -->
+                        </div>
+                    </div>
+
+                    <!-- News Feed Tabs -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="nav nav-pills card-header-pills" id="newsTabs" role="tablist">
+                                <button class="nav-link active py-1 px-3 small" data-bs-toggle="tab" data-bs-target="#news-all" type="button">Principais</button>
+                                <button class="nav-link py-1 px-3 small" data-bs-toggle="tab" data-bs-target="#news-br" type="button">Brasil</button>
+                                <button class="nav-link py-1 px-3 small" data-bs-toggle="tab" data-bs-target="#news-us" type="button">EUA</button>
+                            </div>
+                            <a href="#" onclick="app.router('noticias')" class="panel-link">Ver Todas <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="news-all"></div>
+                            <div class="tab-pane fade" id="news-br"></div>
+                            <div class="tab-pane fade" id="news-us"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right: Widgets -->
+                <div class="col-lg-4">
+                    <!-- Top Movers -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h6 class="panel-title">Mercado Agora</h6>
+                        </div>
+                        <ul class="nav nav-tabs nav-fill border-bottom-0 mb-2" style="font-size: 0.8rem;">
+                            <li class="nav-item"><a class="nav-link active p-1 text-green" data-bs-toggle="tab" href="#movers-gain">Maiores Altas</a></li>
+                            <li class="nav-item"><a class="nav-link p-1 text-red" data-bs-toggle="tab" href="#movers-loss">Maiores Baixas</a></li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="movers-gain">
+                                <table class="table table-movers mb-0" id="table-gainers"></table>
+                            </div>
+                            <div class="tab-pane" id="movers-loss">
+                                <table class="table table-movers mb-0" id="table-losers"></table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Market Heatmap (Simulated) -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h6 class="panel-title">Heatmap (S&P 500)</h6>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1" style="height: 200px; align-content: flex-start;" id="heatmap-container">
+                            <!-- Blocks generated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Currencies -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h6 class="panel-title">Câmbio & Crypto</h6>
+                        </div>
+                        <table class="table table-movers mb-0">
+                            <tbody id="commodities-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= PAGE: NOTÍCIAS ================= -->
+    <section id="noticias" class="view-section">
+        <div class="container px-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold mb-0">Notícias Globais</h2>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-terminal active">Todas</button>
+                    <button class="btn btn-sm btn-terminal">Corporativo</button>
+                    <button class="btn btn-sm btn-terminal">Economia</button>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-9" id="full-news-feed">
+                    <!-- Generated Content -->
+                </div>
+                <div class="col-lg-3">
+                    <div class="panel">
+                        <h6 class="panel-title mb-3">Em Alta</h6>
+                        <div id="trending-tags" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+                    <div class="panel">
+                        <h6 class="panel-title mb-3">Calendário Econômico</h6>
+                        <ul class="list-unstyled small text-secondary" id="econ-calendar-side"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= PAGE: DIVIDENDOS ================= -->
+    <section id="dividendos" class="view-section">
+        <div class="container px-4">
+            <div class="row g-4">
+                <!-- Calculator (Updated to match the image structure) -->
+                <div class="col-lg-4">
+                    <div class="panel h-100">
+                        <h6 class="panel-title mb-3"><i class="fas fa-calculator me-2 text-gold"></i>Simulador DRIP Avançado</h6>
+                        
+                        <div class="mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+                            <label class="small text-secondary mb-2">Selecione Ticker/ETF (Opcional)</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control search-input" id="calc-ticker" placeholder="Ex: VALE3">
+                                <button class="btn btn-terminal btn-sm" onclick="marketService.fillCalc()">Carregar</button>
+                            </div>
+                        </div>
+
+                        <form onsubmit="event.preventDefault(); app.runCalc();">
+                            <div class="form-row-calc">
+                                <label for="calc-initial-investment">Investimento Inicial (R$):</label>
+                                <div class="input-group-calc">
+                                    <input type="number" step="0.01" class="form-control search-input text-end" id="calc-initial-investment" value="10000">
+                                </div>
+                            </div>
+
+                            <div class="form-row-calc">
+                                <label for="calc-share-price">Preço da Ação (R$):</label>
+                                <div class="input-group-calc">
+                                    <input type="number" step="0.01" class="form-control search-input text-end" id="calc-share-price" value="50.00">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row-calc">
+                                <label for="calc-dividend-amount">Dividendo por Ação (R$):</label>
+                                <div class="input-group-calc">
+                                    <input type="number" step="0.01" class="form-control search-input text-end" id="calc-dividend-amount" value="1.02">
+                                </div>
+                            </div>
+
+                            <div class="form-row-calc">
+                                <label for="calc-dividend-frequency">Frequência de Dividendo:</label>
+                                <div class="input-group-calc">
+                                    <select class="form-select search-input" id="calc-dividend-frequency">
+                                        <option value="4">Trimestral</option>
+                                        <option value="12">Mensal</option>
+                                        <option value="2">Semestral</option>
+                                        <option value="1">Anual</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row-calc">
+                                <label for="calc-dividend-growth">Crescimento do Dividendo (%):</label>
+                                <div class="input-group-calc">
+                                    <input type="number" step="0.1" class="form-control search-input text-end" id="calc-dividend-growth" value="4">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row-calc">
+                                <label for="calc-share-growth">Crescimento do Preço da Ação (%):</label>
+                                <div class="input-group-calc">
+                                    <input type="number" step="0.1" class="form-control search-input text-end" id="calc-share-growth" value="5">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row-calc">
+                                <label for="calc-extra-investment">Aporte Adicional (R$):</label>
+                                <div class="input-group-calc">
+                                    <input type="number" step="0.01" class="form-control search-input text-end" id="calc-extra-investment" value="100">
+                                </div>
+                            </div>
+
+                            <div class="form-row-calc">
+                                <label for="calc-extra-frequency">Frequência do Aporte:</label>
+                                <div class="input-group-calc">
+                                    <select class="form-select search-input" id="calc-extra-frequency">
+                                        <option value="12">Mensal</option>
+                                        <option value="4">Trimestral</option>
+                                        <option value="2">Semestral</option>
+                                        <option value="1">Anual</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row-calc">
+                                <label for="calc-years-input">Anos de Investimento:</label>
+                                <div class="input-group-calc">
+                                    <input type="number" class="form-control search-input text-end" id="calc-years-input" value="10">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-terminal w-100 py-2 mt-4" style="background: var(--accent-blue); color: #fff; border: 1px solid var(--accent-blue);">CALCULAR</button>
+                        </form>
+                        
+                        <hr class="border-secondary opacity-25 mt-4">
+
+                        <div class="mt-4 text-center">
+                            <div class="small text-secondary">Patrimônio Total Projetado</div>
+                            <div class="fs-4 fw-bold text-green" id="calc-result">R$ 0,00</div>
+                            <div class="small text-secondary mt-1">Total de Dividendos Acumulados: <span id="calc-total-dividends" class="text-gold">R$ 0,00</span></div>
+                        </div>
+
+                        <!-- Chart container -->
+                        <div class="mt-4" id="drip-chart-container" style="min-height: 250px;">
+                            <div id="drip-chart"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calendar -->
+                <div class="col-lg-8">
+                    <div class="panel h-100">
+                        <div class="panel-header">
+                            <h6 class="panel-title">Agenda de Proventos</h6>
+                            <span class="badge bg-success">Atualizado Agora</span>
+                        </div>
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-movers table-hover">
+                                <thead class="sticky-top bg-dark"><tr><th>Ativo</th><th>Tipo</th><th>Data Com</th><th>Pagamento</th><th class="text-end">Valor</th></tr></thead>
+                                <tbody id="dividend-table-body"></tbody>
+                            </table>
+                        </div>
+                        <div class="text-center pt-3">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="app.loadDividends(true)">Carregar Mais</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= PAGE: AÇÕES (STOCK DETAILS) ================= -->
+    <section id="acoes" class="view-section">
+        <div class="container px-4">
+            
+            <!-- HEADER: Ticker & Price -->
+            <div class="acoes-header d-flex justify-content-between align-items-center mb-4">
+                <div id="acoes-main-info">
+                    <h2 class="fw-bold mb-1 text-white" id="acoes-ticker-name">NVDA - NVIDIA Corporation</h2>
+                    <div class="small text-secondary mb-3">NASDAQ - Moeda em USD</div>
+                    <div class="d-flex align-items-end">
+                        <div class="display-5 fw-bold text-white me-3 font-mono" id="acoes-price">186,52</div>
+                        <div class="d-flex flex-column">
+                            <span class="font-mono fw-bold text-green" id="acoes-change-pct">+5,16 (+2,85%)</span>
+                            <span class="small text-secondary">Fechamento - 19/11</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Side Info Strip (Mimics the image) -->
+                <div class="d-none d-lg-block">
+                    <div class="panel p-3 mb-0" style="width: 250px;">
+                        <h6 class="small text-secondary fw-bold mb-3">Índices e Câmbio</h6>
+                        <ul class="list-unstyled small mb-0 font-mono" id="acoes-indices-strip">
+                            <!-- JS Generated -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT GRID -->
+            <div class="row g-4">
+                <!-- Left: Chart and Tabs -->
+                <div class="col-lg-9">
+                    <div class="panel p-3">
+                        
+                        <!-- Tabs -->
+                        <ul class="nav nav-pills acoes-nav mb-3" role="tablist">
+                            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#acoes-chart">Gráfico</a></li>
+                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#acoes-geral">Geral</a></li>
+                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#acoes-noticias">Notícias e Análises</a></li>
+                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#acoes-tecnica">Análise Técnica</a></li>
+                        </ul>
+                        
+                        <div class="tab-content">
+                            <!-- Tab: Gráfico (Main Chart) -->
+                            <div class="tab-pane fade show active" id="acoes-chart">
+                                <div class="d-flex gap-2 mb-3">
+                                    <button class="btn btn-sm btn-terminal active">1D</button>
+                                    <button class="btn btn-sm btn-terminal">5D</button>
+                                    <button class="btn btn-sm btn-terminal">1M</button>
+                                    <button class="btn btn-sm btn-terminal">6M</button>
+                                    <button class="btn btn-sm btn-terminal">1A</button>
+                                    <button class="btn btn-sm btn-terminal">Máx</button>
+                                </div>
+                                <div id="acoes-main-chart" style="min-height: 400px;">
+                                    <!-- ApexChart for Price -->
+                                </div>
+                            </div>
+                            
+                            <!-- Tab: Geral (Overview) -->
+                            <div class="tab-pane fade" id="acoes-geral">
+                                <h6 class="fw-bold mb-3">Informações Principais</h6>
+                                <div class="row small text-secondary">
+                                    <div class="col-sm-6 mb-2"><strong>Setor:</strong> <span class="text-white" id="acoes-sector">Tecnologia</span></div>
+                                    <div class="col-sm-6 mb-2"><strong>Capitalização:</strong> <span class="text-white" id="acoes-mktcap">2,5 Tri USD</span></div>
+                                    <div class="col-sm-6 mb-2"><strong>P/L:</strong> <span class="text-white" id="acoes-pe">65.2x</span></div>
+                                    <div class="col-sm-6 mb-2"><strong>Yield:</strong> <span class="text-white" id="acoes-yield">0.02%</span></div>
+                                </div>
+                                <hr class="border-secondary opacity-25 my-4">
+                                <h6 class="fw-bold mb-3">Perfil</h6>
+                                <p class="small" id="acoes-profile">NVIDIA Corporation atua como uma empresa de computação gráfica e tecnologias de processamento de mídia. Desenvolve GPUs para jogos, visualização profissional e data centers.</p>
+                            </div>
+
+                            <!-- Tab: Notícias e Análises -->
+                            <div class="tab-pane fade" id="acoes-noticias">
+                                <h6 class="fw-bold mb-3">Notícias Recentes</h6>
+                                <div id="acoes-news-list">
+                                    <!-- News items generated by JS -->
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary mt-3" onclick="app.router('noticias')">Ver mais notícias</button>
+                            </div>
+
+                            <!-- Tab: Análise Técnica Detalhada -->
+                            <div class="tab-pane fade" id="acoes-tecnica">
+                                <h6 class="fw-bold mb-3">Sinais de Indicadores</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-movers">
+                                        <thead>
+                                            <tr>
+                                                <th>Indicador</th>
+                                                <th>Valor</th>
+                                                <th>Sinal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="acoes-tech-table">
+                                            <!-- Detailed signals generated by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right: Quick Summary & Technical Gauge -->
+                <div class="col-lg-3">
+                    <!-- Technical Analysis Gauge -->
+                    <div class="panel h-100">
+                        <div class="panel-header">
+                            <h6 class="panel-title">Análise Técnica</h6>
+                        </div>
+                        <div class="gauge-container mb-3" id="acoes-gauge">
+                            <div class="gauge-circle">
+                                <div class="gauge-inner"></div>
+                                <div class="gauge-center-mask"></div>
+                                <!-- Needle position is controlled by JS for a specific rotation (e.g., 90 deg for NEUTRO, 0 deg for COMPRA, 180 deg for VENDA) -->
+                                <div class="gauge-needle" style="transform: rotate(90deg) translateY(-50%);"></div> 
+                                <div class="gauge-text"></div>
+                            </div>
+                            <div class="mt-2 small text-secondary">Força Relativa</div>
+                            <div class="fw-bold fs-5 text-accent-blue" id="acoes-gauge-verdict">NEUTRO</div>
+                        </div>
+
+                        <hr class="border-secondary opacity-25 my-3">
+                        
+                        <!-- Price Targets & Volatility -->
+                        <h6 class="small text-secondary fw-bold mb-3">Metas de Preço</h6>
+                        <ul class="list-unstyled small mb-0">
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary">Preço Justo (Modelo)</span>
+                                <span class="text-white fw-bold" id="acoes-fair-price">$182,83</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary">Var. 52 Semanas</span>
+                                <span class="text-green fw-bold" id="acoes-var-52-max">$212,19</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary">Variação 52 Semanas (Min)</span>
+                                <span class="text-red fw-bold" id="acoes-var-52-min">$86,02</span>
+                            </li>
+                        </ul>
+                        
+                        <hr class="border-secondary opacity-25 my-3">
+                        
+                        <div class="small text-center">
+                            <p class="text-secondary mb-1">Deseja simular o reinvestimento de dividendos?</p>
+                            <button class="btn btn-sm btn-terminal w-100" onclick="app.router('dividendos')">IR PARA DRIP SIMULATOR</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= PAGE: LOGIN ================= -->
+    <section id="login-view" class="view-section">
+        <div class="login-card">
+            <h4 class="fw-bold text-center mb-4">Acesso ao Terminal</h4>
+            <form onsubmit="event.preventDefault(); app.login();">
+                <div class="mb-3"><input type="email" class="form-control search-input" placeholder="E-mail"></div>
+                <div class="mb-3"><input type="password" class="form-control search-input" placeholder="Senha"></div>
+                <button type="submit" class="btn btn-terminal w-100 py-2">ENTRAR</button>
+            </form>
+            <div class="text-center mt-3"><a href="#" class="small text-secondary" onclick="app.router('home')">Entrar como Visitante</a></div>
+        </div>
+    </section>
+
+    <!-- ================= FOOTER ================= -->
+    <footer>
+        <div class="container px-4">
+            <div class="row g-5">
+                <div class="col-lg-4">
+                    <a href="#" class="footer-brand">INVEST<span>NYSE</span> PRO</a>
+                    <p class="footer-text">Sua plataforma definitiva para análise de mercado em tempo real, dados financeiros globais e ferramentas de investimento inteligentes.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <h5 class="footer-heading">Mercados</h5>
+                    <ul class="footer-links">
+                        <li><a href="#" onclick="app.router('home')">Ações EUA</a></li>
+                        <li><a href="#" onclick="app.router('home')">Ações Brasil</a></li>
+                        <li><a href="#" onclick="app.router('home')">Criptomoedas</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <h5 class="footer-heading">Ferramentas</h5>
+                    <ul class="footer-links">
+                        <li><a href="#" onclick="app.router('dividendos')">Calculadora DRIP</a></li>
+                        <li><a href="#" onclick="app.router('acoes'); app.loadStockDetails('AAPL');">Análise de Ações</a></li>
+                        <li><a href="#" onclick="app.router('noticias')">Feed de Notícias</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4">
+                    <h5 class="footer-heading">Newsletter</h5>
+                    <form onsubmit="event.preventDefault(); alert('Inscrito!');">
+                        <div class="input-group mb-3">
+                            <input type="email" class="form-control search-input" placeholder="E-mail">
+                            <button class="btn btn-terminal" type="submit">OK</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2024 InvestNYSE Pro. Todos os direitos reservados.
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Definições de cores do CSS para uso em JS (solução para o SyntaxError)
+        const cssColors = {
+            upGreen: '#00c076',
+            downRed: '#ff3b30',
+            accentBlue: '#3b82f6',
+            textSecondary: '#9ca3af'
+        };
+
+        /**
+         * MARKET DATA SERVICE (API LAYER)
+         */
+        class MarketService {
+            constructor() {
+                // Base de dados simulada para carregamento de dados na calculadora
+                this.db = [
+                    { s: 'SPY', n: 'S&P 500 ETF', p: 524.50, c: 0.45, cp: 0.008, y: 1.2, div_amount: 1.80, div_freq: 4, type: 'ETF', exchange: 'NYSEARCA', sector: 'Diversified', mktcap: '450 Bi USD', pe: '20.5x', profile: 'Um fundo que acompanha o índice S&P 500.' },
+                    { s: 'AAPL', n: 'Apple Inc.', p: 178.35, c: -0.89, cp: -0.005, y: 0.5, div_amount: 0.24, div_freq: 4, type: 'Stock', exchange: 'NASDAQ', sector: 'Tecnologia', mktcap: '2.9 Tri USD', pe: '30.1x', profile: 'A Apple projeta, fabrica e comercializa smartphones, computadores pessoais, tablets, wearables e acessórios.' },
+                    { s: 'NVDA', n: 'NVIDIA Corp', p: 920.00, c: 15.00, cp: 0.0165, y: 0.02, div_amount: 0.04, div_freq: 4, type: 'Stock', exchange: 'NASDAQ', sector: 'Tecnologia', mktcap: '2.5 Tri USD', pe: '65.2x', profile: 'NVIDIA Corporation atua como uma empresa de computação gráfica e tecnologias de processamento de mídia. Desenvolve GPUs para jogos, visualização profissional e data centers.' },
+                    { s: 'TSLA', n: 'Tesla Inc', p: 175.40, c: 5.40, cp: 0.0318, y: 0, div_amount: 0, div_freq: 0, type: 'Stock', exchange: 'NASDAQ', sector: 'Automotivo', mktcap: '580 Bi USD', pe: '45.0x', profile: 'A Tesla projeta, desenvolve, fabrica e vende veículos elétricos, sistemas de geração e armazenamento de energia.' },
+                    { s: 'KO', n: 'Coca-Cola', p: 60.50, c: 0.05, cp: 0.0008, y: 3.1, div_amount: 0.48, div_freq: 4, type: 'Stock', exchange: 'NYSE', sector: 'Bebidas', mktcap: '260 Bi USD', pe: '22.0x', profile: 'A Coca-Cola é uma das maiores empresas de bebidas do mundo.' },
+                    { s: 'O', n: 'Realty Income', p: 52.40, c: -0.20, cp: -0.0038, y: 5.8, div_amount: 0.25, div_freq: 12, type: 'REIT', exchange: 'NYSE', sector: 'Imobiliário', mktcap: '35 Bi USD', pe: '35.0x', profile: 'Realty Income é um REIT (Fundo de Investimento Imobiliário) de aluguel líquido mensal.' },
+                    { s: 'PETR4', n: 'Petrobras PN', p: 38.50, c: 0.80, cp: 0.0212, y: 12.5, div_amount: 4.50, div_freq: 2, type: 'Stock', exchange: 'B3', sector: 'Energia', mktcap: '500 Bi BRL', pe: '4.5x', profile: 'Petrobras é uma empresa de energia brasileira de capital aberto.' },
+                    { s: 'VALE3', n: 'Vale ON', p: 62.20, c: -1.20, cp: -0.019, y: 8.4, div_amount: 2.50, div_freq: 2, type: 'Stock', exchange: 'B3', sector: 'Mineração', mktcap: '300 Bi BRL', pe: '6.0x', profile: 'A Vale é uma mineradora multinacional brasileira, uma das maiores do mundo.' },
+                    { s: 'ITUB4', n: 'Itaú Unibanco', p: 34.10, c: 0.10, cp: 0.0029, y: 6.2, div_amount: 0.02, div_freq: 12, type: 'Stock', exchange: 'B3', sector: 'Financeiro', mktcap: '280 Bi BRL', pe: '8.0x', profile: 'O Itaú Unibanco é o maior banco privado do Brasil.' },
+                    { s: 'BBAS3', n: 'Banco do Brasil', p: 28.90, c: 0.50, cp: 0.0176, y: 9.1, div_amount: 0.80, div_freq: 4, type: 'Stock', exchange: 'B3', sector: 'Financeiro', mktcap: '150 Bi BRL', pe: '5.2x', profile: 'O Banco do Brasil é uma instituição financeira controlada pelo governo brasileiro.' },
+                    { s: 'BTC', n: 'Bitcoin', p: 68000, c: 2000, cp: 0.0303, y: 0, div_amount: 0, div_freq: 0, type: 'Crypto', exchange: 'Global', sector: 'Digital', mktcap: '1.3 Tri USD', pe: 'N/A', profile: 'Bitcoin é uma criptomoeda e sistema de pagamento digital descentralizado.' }
+                ];
+                
+                this.indicesData = [
+                    { n: 'DÓLAR/BRL', v: '5.14', c: -0.006, cp: -0.0012 },
+                    { n: 'EUR/BRL', v: '5.52', c: 0.005, cp: 0.0009 },
+                    { n: 'OURO/USD', v: '2,350', c: 35.00, cp: 0.0151 },
+                    { n: 'BTC/USD', v: '68,400', c: 1400.00, cp: 0.0209 },
+                ];
+            }
+
+            async getQuote(ticker) {
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        const stock = this.db.find(s => s.s === ticker.toUpperCase());
+                        if (stock) {
+                            // Simulate fresh data
+                            const price = stock.p + (Math.random() * 2 - 1) * stock.p * 0.01; // +/- 1%
+                            const change = price - stock.p;
+                            const changePct = (change / stock.p) * 100;
+
+                            resolve({
+                                ...stock,
+                                price: price,
+                                change: change,
+                                changePct: changePct,
+                            });
+                        } else {
+                            resolve(null);
+                        }
+                    }, 50);
+                });
+            }
+
+            // ... other methods (getNews, getMovers, fillCalc, etc.) remain the same
+            async getNews(category = 'all') {
+                const newsDB = [
+                    { t: 'Petrobras (PETR4) aprova pagamento de dividendos complementares.', tag: 'PETR4', cat: 'br', time: '10 min' },
+                    { t: 'Vale (VALE3) reporta produção de minério acima do esperado no 1T.', tag: 'VALE3', cat: 'br', time: '35 min' },
+                    { t: 'Itaú (ITUB4) lança nova plataforma de investimentos globais.', tag: 'ITUB4', cat: 'br', time: '1h' },
+                    { t: 'Nvidia anuncia novos chips de IA focados em data centers.', tag: 'NVDA', cat: 'us', time: '15 min' },
+                    { t: 'Apple planeja renovação completa da linha Mac com chips M4.', tag: 'AAPL', cat: 'us', time: '2h' },
+                    { t: 'Fed sinaliza cautela, mas mercado precifica cortes em junho.', tag: 'SPY', cat: 'us', time: '3h' },
+                    { t: 'Bitcoin cai abaixo de 65k com saídas líquidas de ETFs.', tag: 'BTC', cat: 'us', time: '4h' },
+                    { t: 'Banco Central do Brasil mantém Selic em 10,5%.', tag: 'IBOV', cat: 'br', time: '6h' },
+                    { t: 'Amazon investe bilhões em data centers na Europa.', tag: 'AMZN', cat: 'us', time: '7h' },
+                    { t: 'Tesla reduz preços na China para ganhar market share.', tag: 'TSLA', cat: 'us', time: '8h' }
+                ];
+                return new Promise(resolve => {
+                    if(category === 'all') resolve(newsDB);
+                    else resolve(newsDB.filter(n => n.cat === category));
+                });
+            }
+
+            async getMovers() {
+                const all = await Promise.all(this.db.slice(0, 10).map(s => this.getQuote(s.s)));
+                all.sort((a,b) => b.changePct - a.changePct);
+                return { gainers: all.slice(0, 5), losers: all.slice(-5).reverse() };
+            }
+
+            async fillCalc() {
+                const t = document.getElementById('calc-ticker').value;
+                const q = await this.getQuote(t);
+                if (q) {
+                    document.getElementById('calc-share-price').value = q.price.toFixed(2);
+                    // Assume div_amount is the latest payment
+                    document.getElementById('calc-dividend-amount').value = q.div_amount.toFixed(2);
+                    // Convert frequency value: 12 (monthly), 4 (quarterly), 2 (semiannual), 1 (annual)
+                    document.getElementById('calc-dividend-frequency').value = q.div_freq;
+                    alert(`Dados de ${q.s} carregados!`);
+                } else {
+                    alert(`Ticker '${t}' não encontrado. Preencha os dados manualmente.`);
+                }
+            }
+        }
+
+        const marketService = new MarketService();
+
+        /**
+         * APP CONTROLLER
+         */
+        const app = {
+            currentTicker: 'NVDA', // Default ticker
+            init: () => {
+                app.router('home');
+                app.setupAutocomplete();
+                app.startTickerTape();
+                app.loadHomeData();
+                app.loadDividends(); // Auto load
+                app.runCalc(); // Run initial calculation on load
+                // Load NVDA details on init for demonstration
+                app.loadStockDetails(app.currentTicker); 
+            },
+
+            router: (pageId) => {
+                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+                const target = document.getElementById(pageId === 'login' ? 'login-view' : pageId);
+                if(target) {
+                    target.classList.add('active');
+                    gsap.fromTo(target, {opacity:0, y:10}, {opacity:1, y:0, duration:0.3});
+                }
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                const link = document.querySelector(`[data-target="${pageId}"]`);
+                if(link) link.classList.add('active');
+                window.scrollTo(0,0);
+            },
+
+            loadTicker: async (ticker) => {
+                // Nova função para carregar o ticker e navegar para a seção 'acoes'
+                app.currentTicker = ticker;
+                app.router('acoes');
+                await app.loadStockDetails(ticker);
+            },
+            
+            // ... (loadHomeData remains the same)
+            loadHomeData: async () => {
+                // Indices Strip
+                const indices = [
+                    {n:'IBOV', v:'128.500', c:'+0.8%'}, {n:'S&P 500', v:'5.240', c:'+0.4%'},
+                    {n:'NASDAQ', v:'18.100', c:'+1.2%'}, {n:'DÓLAR', v:'5.15', c:'-0.3%'}
+                ];
+                document.getElementById('indices-strip').innerHTML = indices.map(i => `
+                    <div class="d-flex flex-column align-items-center" style="min-width: 80px;">
+                        <span class="text-secondary small fw-bold">${i.n}</span>
+                        <span class="font-mono fw-bold text-white">${i.v}</span>
+                        <span class="small ${i.c.includes('+')?'text-green':'text-red'}">${i.c}</span>
+                    </div>
+                `).join('<div class="border-end border-secondary h-75 mx-2"></div>');
+
+                // News
+                const renderNewsList = (list, elId) => {
+                    document.getElementById(elId).innerHTML = list.map(n => `
+                        <div class="news-card">
+                            <img src="https://via.placeholder.com/100x70/1a202c/4a5568?text=NEWS" class="news-thumb" onerror="this.onerror=null; this.src='https://placehold.co/100x70/1a202c/4a5568?text=NEWS'">
+                            <div class="news-content">
+                                <div class="news-meta"><span class="ticker-tag" onclick="event.stopPropagation(); app.loadTicker('${n.tag}')">${n.tag}</span><span>${n.time}</span></div>
+                                <div class="news-title">${n.t}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                };
+                renderNewsList(await marketService.getNews('all'), 'news-all');
+                renderNewsList(await marketService.getNews('br'), 'news-br');
+                renderNewsList(await marketService.getNews('us'), 'news-us');
+
+                // News Page Feed
+                const allNews = await marketService.getNews('all');
+                document.getElementById('full-news-feed').innerHTML = allNews.map(n => `
+                     <div class="panel p-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="ticker-tag" onclick="app.loadTicker('${n.tag}')">${n.tag}</span>
+                            <span class="text-secondary small">${n.time}</span>
+                        </div>
+                        <h5 class="text-white mb-2">${n.t}</h5>
+                        <p class="text-secondary small mb-0">Resumo automatizado: O mercado reage aos novos dados com volatilidade moderada. Analistas recomendam cautela.</p>
+                     </div>
+                `).join('');
+                
+                // Trending Tags
+                const tags = ['PETR4', 'VALE3', 'NVDA', 'BTC', 'DOLA', 'WEGE3'];
+                document.getElementById('trending-tags').innerHTML = tags.map(t => `<span class="ticker-tag p-2" onclick="app.loadTicker('${t}')">${t}</span>`).join('');
+
+                // Movers
+                const movers = await marketService.getMovers();
+                const renderTable = (list, elId) => {
+                    document.getElementById(elId).innerHTML = list.map(s => `
+                        <tr>
+                            <td onclick="app.loadTicker('${s.s}')" style="cursor: pointer;"><span class="fw-bold text-white">${s.s}</span></td>
+                            <td class="text-end font-mono">${s.price.toFixed(2)}</td>
+                            <td class="text-end font-mono ${s.change >= 0 ? 'text-green':'text-red'}">${s.changePct.toFixed(2)}%</td>
+                        </tr>
+                    `).join('');
+                };
+                renderTable(movers.gainers, 'table-gainers');
+                renderTable(movers.losers, 'table-losers');
+
+                // Heatmap
+                const hm = document.getElementById('heatmap-container');
+                let hmHtml = '';
+                for(let i=0; i<24; i++) {
+                    const w = Math.floor(Math.random() * 20 + 10) + '%';
+                    const h = Math.floor(Math.random() * 40 + 40) + 'px';
+                    const up = Math.random() > 0.45;
+                    const color = up ? `rgba(0, 192, 118, ${Math.random()*0.5+0.2})` : `rgba(255, 59, 48, ${Math.random()*0.5+0.2})`;
+                    const sym = marketService.db[i % marketService.db.length]?.s || 'STK';
+                    hmHtml += `<div class="p-1" onclick="app.loadTicker('${sym}')" style="cursor: pointer; width:${w}; height:${h}; background:${color}; border-radius:2px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:bold; color:#fff;">${sym}</div>`;
+                }
+                hm.innerHTML = hmHtml;
+
+                // Commodities
+                const comms = marketService.indicesData.slice(0, 4);
+                document.getElementById('commodities-table').innerHTML = comms.map(c => {
+                    const isPositive = c.c >= 0;
+                    const colorClass = isPositive ? 'text-green' : 'text-red';
+                    const changeStr = (c.c > 0 ? '+' : '') + c.c.toFixed(2) + ' (' + (c.cp * 100).toFixed(2) + '%)';
+
+                    return `<tr>
+                        <td>${c.n}</td>
+                        <td class="text-end font-mono text-white">${c.v}</td>
+                        <td class="text-end font-mono ${colorClass}">${changeStr}</td>
+                    </tr>`;
+                }).join('');
+                
+                // Econ Calendar Side
+                const econ = [{t:'14:00', e:'FOMC Minutes', i:'High'}, {t:'15:30', e:'Crude Oil Inv', i:'Med'}];
+                document.getElementById('econ-calendar-side').innerHTML = econ.map(e => `<li class="mb-2 border-bottom border-secondary border-opacity-25 pb-1"><strong class="text-white">${e.t}</strong> ${e.e} <span class="badge bg-${e.i==='High'?'danger':'warning'} ms-1">${e.i}</span></li>`).join('');
+            },
+
+            loadDividends: async (append = false) => {
+                // ... (loadDividends remains the same)
+                const tbody = document.getElementById('dividend-table-body');
+                let html = '';
+                const count = append ? 20 : 50;
+                for(let i=0; i<count; i++) {
+                    const stock = marketService.db[Math.floor(Math.random() * marketService.db.length)];
+                    const type = Math.random() > 0.5 ? 'Dividendo' : 'JCP';
+                    const date = new Date();
+                    date.setDate(date.getDate() + Math.floor(Math.random() * 60));
+                    const dateStr = date.toLocaleDateString('pt-BR');
+                    const payDate = new Date(date);
+                    payDate.setDate(date.getDate() + 15);
+                    const payStr = payDate.toLocaleDateString('pt-BR');
+                    const val = (Math.random() * 2 + 0.1).toFixed(2);
+                    
+                    html += `<tr>
+                        <td onclick="app.loadTicker('${stock.s}')" style="cursor: pointer;"><span class="fw-bold text-accent-blue">${stock.s}</span></td>
+                        <td><span class="badge bg-dark border border-secondary text-secondary">${type}</span></td>
+                        <td class="font-mono">${dateStr}</td>
+                        <td class="font-mono">${payStr}</td>
+                        <td class="text-end font-mono text-green">R$ ${val}</td>
+                    </tr>`;
+                }
+                if(append) tbody.innerHTML += html;
+                else tbody.innerHTML = html;
+            },
+
+            loadStockDetails: async (ticker) => {
+                const quote = await marketService.getQuote(ticker);
+                if (!quote) {
+                    // Handle case where ticker is not found
+                    document.getElementById('acoes-ticker-name').innerText = `${ticker} - Ticker Não Encontrado`;
+                    document.getElementById('acoes-price').innerText = 'N/A';
+                    document.getElementById('acoes-change-pct').innerText = 'N/A';
+                    document.getElementById('acoes-change-pct').className = 'font-mono fw-bold text-secondary';
+                    return;
+                }
+
+                // --- 1. Update Header Info ---
+                const price = quote.price.toFixed(2);
+                const change = quote.change.toFixed(2);
+                const changePct = (quote.changePct).toFixed(2);
+                const colorClass = quote.change >= 0 ? 'text-green' : 'text-red';
+                const sign = quote.change >= 0 ? '+' : '';
+
+                document.getElementById('acoes-ticker-name').innerText = `${quote.s} - ${quote.n}`;
+                document.querySelector('.acoes-header .small.text-secondary').innerText = `${quote.exchange} - Moeda em ${quote.exchange === 'B3' ? 'BRL' : 'USD'}`;
+                document.getElementById('acoes-price').innerText = price;
+                document.getElementById('acoes-change-pct').innerText = `${sign}${change} (${sign}${changePct}%)`;
+                document.getElementById('acoes-change-pct').className = `font-mono fw-bold ${colorClass}`;
+                
+                // --- 2. Update Quick Stats Strip ---
+                const indicesHtml = marketService.indicesData.map(i => {
+                    const isPositive = i.c >= 0;
+                    const color = isPositive ? 'text-green' : 'text-red';
+                    const changeStr = (isPositive ? '+' : '') + (i.cp * 100).toFixed(2) + '%';
+                    return `<li class="d-flex justify-content-between"><span>${i.n}</span><span class="${color}">${changeStr}</span></li>`;
+                }).join('');
+                document.getElementById('acoes-indices-strip').innerHTML = indicesHtml;
+                
+                // --- 3. Update 'Geral' Tab ---
+                document.getElementById('acoes-sector').innerText = quote.sector;
+                document.getElementById('acoes-mktcap').innerText = quote.mktcap;
+                document.getElementById('acoes-pe').innerText = quote.pe;
+                document.getElementById('acoes-yield').innerText = quote.y + '%';
+                document.getElementById('acoes-profile').innerText = quote.profile;
+                
+                // --- 4. Update 'Análise Técnica' Tab & Gauge ---
+                const rsi = (Math.random() * 40 + 30).toFixed(1);
+                const macd = (Math.random() * 2 - 1).toFixed(2);
+                const ma = (quote.price * (1 + (Math.random()*0.1 - 0.05))).toFixed(2);
+                
+                let verdict = 'NEUTRO';
+                let needleRotation = 90; // Neutral: 90 degrees
+                if(rsi < 35) { verdict = 'COMPRA'; needleRotation = 30; } // Buy: 30 degrees (Strong Buy is 0)
+                if(rsi > 65) { verdict = 'VENDA'; needleRotation = 150; } // Sell: 150 degrees (Strong Sell is 180)
+                
+                document.getElementById('acoes-gauge-verdict').innerText = verdict;
+                document.querySelector('#acoes-gauge .gauge-needle').style.transform = `rotate(${needleRotation}deg) translateY(-50%)`;
+                document.querySelector('#acoes-gauge .gauge-text').innerText = verdict.charAt(0);
+
+                document.getElementById('acoes-tech-table').innerHTML = `
+                    <tr><td>Média Móvel Simples (20)</td><td class="font-mono">${(quote.price * 0.98).toFixed(2)}</td><td><span class="signal-badge signal-buy">COMPRA</span></td></tr>
+                    <tr><td>RSI (14)</td><td class="font-mono">${rsi}</td><td><span class="signal-badge ${verdict === 'COMPRA' ? 'signal-buy' : verdict === 'VENDA' ? 'signal-sell' : 'signal-neutral'}">${verdict}</span></td></tr>
+                    <tr><td>MACD</td><td class="font-mono">${macd}</td><td><span class="signal-badge ${macd > 0.5 ? 'signal-buy' : 'signal-neutral'}">${macd > 0.5 ? 'COMPRA' : 'NEUTRO'}</span></td></tr>
+                    <tr><td>Média Móvel Exponencial (200)</td><td class="font-mono">${ma}</td><td><span class="signal-badge ${price > ma ? 'signal-buy' : 'signal-neutral'}">${price > ma ? 'COMPRA' : 'NEUTRO'}</span></td></tr>
+                `;
+
+                // --- 5. Update News Tab (Filter for Ticker) ---
+                const newsForTicker = (await marketService.getNews('all')).filter(n => n.tag === ticker);
+                document.getElementById('acoes-news-list').innerHTML = newsForTicker.map(n => `
+                    <div class="news-card">
+                        <img src="https://via.placeholder.com/100x70/1a202c/4a5568?text=${ticker}" class="news-thumb" onerror="this.onerror=null; this.src='https://placehold.co/100x70/1a202c/4a5568?text=NEWS'">
+                        <div class="news-content">
+                            <div class="news-meta"><span class="ticker-tag">${n.tag}</span><span>${n.time}</span></div>
+                            <div class="news-title">${n.t}</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // --- 6. Update Price Targets ---
+                document.getElementById('acoes-fair-price').innerText = `$${(quote.price * 0.98).toFixed(2)}`;
+                document.getElementById('acoes-var-52-max').innerText = `$${(quote.price * 1.15).toFixed(2)}`;
+                document.getElementById('acoes-var-52-min').innerText = `$${(quote.price * 0.85).toFixed(2)}`;
+
+                // --- 7. Render Chart ---
+                app.renderMainChart(ticker, price);
+            },
+
+            renderMainChart: (ticker, currentPrice) => {
+                // Generate simulated historical data
+                const basePrice = parseFloat(currentPrice);
+                const data = [];
+                for (let i = 29; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const price = basePrice + (Math.sin(i / 5) * 10) + (Math.random() * 5); // Sine wave + noise for fluctuation
+                    data.push([date.getTime(), price.toFixed(2)]);
+                }
+
+                const options = {
+                    series: [{ name: ticker, data: data }],
+                    chart: {
+                        type: 'area',
+                        height: 400,
+                        zoom: { enabled: false },
+                        background: 'transparent',
+                        toolbar: { show: false },
+                        animations: { enabled: true, easing: 'linear', speed: 500 }
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: { curve: 'smooth', width: 2, colors: [cssColors.accentBlue] },
+                    markers: { size: 0 },
+                    tooltip: { theme: 'dark', x: { format: 'dd MMM' }, y: { formatter: (val) => `$${val}` } },
+                    xaxis: { type: 'datetime', tickAmount: 6, labels: { style: { colors: cssColors.textSecondary } } },
+                    yaxis: { labels: { style: { colors: cssColors.textSecondary }, formatter: (val) => `$${val}` } },
+                    grid: { borderColor: '#333' },
+                    fill: {
+                        type: 'gradient',
+                        gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.1, stops: [0, 100], colorStops: [{ offset: 0, color: cssColors.accentBlue, opacity: 0.7 }, { offset: 100, color: cssColors.bgDark, opacity: 0.1 }] }
+                    },
+                    theme: { mode: 'dark' }
+                };
+
+                document.getElementById('acoes-main-chart').innerHTML = '';
+                new ApexCharts(document.querySelector("#acoes-main-chart"), options).render();
+            },
+
+            // ... (runCalc and renderDripChart remain the same)
+            runCalc: () => {
+                // 1. Get Inputs (convert percentages and frequencies)
+                const P0 = parseFloat(document.getElementById('calc-initial-investment').value) || 0; // Initial Investment
+                let S = parseFloat(document.getElementById('calc-share-price').value) || 0; // Initial Share Price
+                let D = parseFloat(document.getElementById('calc-dividend-amount').value) || 0; // Initial Dividend Amount (per share)
+                const FreqD = parseInt(document.getElementById('calc-dividend-frequency').value) || 0; // Dividend Frequency (times/year)
+                const Dg = (parseFloat(document.getElementById('calc-dividend-growth').value) / 100) || 0; // Dividend Growth Rate (annual)
+                const Sg = (parseFloat(document.getElementById('calc-share-growth').value) / 100) || 0; // Share Price Growth Rate (annual)
+                const E = parseFloat(document.getElementById('calc-extra-investment').value) || 0; // Extra Investment (R$)
+                const FreqE = parseInt(document.getElementById('calc-extra-frequency').value) || 0; // Extra Investment Frequency (times/year)
+                const Y = parseInt(document.getElementById('calc-years-input').value) || 0; // Years
+
+                if (S === 0 || Y === 0) {
+                    document.getElementById('calc-result').innerText = 'R$ 0,00';
+                    document.getElementById('calc-total-dividends').innerText = 'R$ 0,00';
+                    app.renderDripChart([]);
+                    return;
+                }
+
+                // 2. Initial Setup
+                let totalShares = Math.floor(P0 / S);
+                let cashBalance = P0 % S;
+                let totalDividends = 0;
+
+                const dividendsPerYear = []; // Store dividends for the chart
+
+                // 3. Calculation Loop (Monthly iteration for precision)
+                for (let year = 1; year <= Y; year++) {
+                    let dividendsThisYear = 0;
+                    
+                    for (let month = 1; month <= 12; month++) {
+                        
+                        // A. Share Price Growth (Monthly compound)
+                        S = S * (1 + Sg / 12);
+                        
+                        // B. Extra Investment (Monthly or other frequency)
+                        if (FreqE > 0 && month % (12 / FreqE) === 0) {
+                            cashBalance += E;
+                        }
+
+                        // C. Dividend Payment (Based on frequency)
+                        if (FreqD > 0 && month % (12 / FreqD) === 0) {
+                            // Dividend per share grows annually, so calculate the rate for the *current* year.
+                            const currentDividendPerShare = D * Math.pow((1 + Dg), (year - 1)); 
+                            const dividendIncome = totalShares * currentDividendPerShare;
+                            totalDividends += dividendIncome;
+                            dividendsThisYear += dividendIncome;
+                            cashBalance += dividendIncome;
+                        }
+
+                        // D. Reinvest (DRIP)
+                        const sharesBought = Math.floor(cashBalance / S);
+                        totalShares += sharesBought;
+                        cashBalance -= sharesBought * S;
+                    }
+                    
+                    dividendsPerYear.push(dividendsThisYear);
+                }
+
+                // 4. Final Results
+                const finalPatrimony = totalShares * S + cashBalance;
+
+                // 5. Render Results
+                document.getElementById('calc-result').innerText = finalPatrimony.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
+                document.getElementById('calc-total-dividends').innerText = totalDividends.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
+                
+                // 6. Render Chart
+                app.renderDripChart(dividendsPerYear);
+            },
+
+            renderDripChart: (dividends) => {
+                const years = dividends.map((_, i) => `Ano ${i + 1}`);
+                
+                const options = {
+                    series: [{
+                        name: 'Total de Dividendos',
+                        data: dividends.map(d => parseFloat(d.toFixed(0))) // Round for chart display
+                    }],
+                    chart: {
+                        type: 'bar',
+                        height: 250,
+                        toolbar: { show: false },
+                        background: 'transparent',
+                    },
+                    plotOptions: {
+                        bar: {
+                            horizontal: false,
+                            columnWidth: '55%',
+                            endingShape: 'rounded'
+                        },
+                    },
+                    dataLabels: {
+                        enabled: false
+                    },
+                    stroke: {
+                        show: true,
+                        width: 2,
+                        colors: ['transparent']
+                    },
+                    xaxis: {
+                        categories: years,
+                        labels: { style: { colors: cssColors.textSecondary } } 
+                    },
+                    yaxis: {
+                        title: { text: 'Valor (R$)', style: { color: cssColors.textSecondary } }, 
+                        labels: { 
+                            style: { colors: cssColors.textSecondary }, 
+                            formatter: (value) => value.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) 
+                        }
+                    },
+                    fill: {
+                        opacity: 1,
+                        colors: [cssColors.upGreen] 
+                    },
+                    tooltip: {
+                        theme: 'dark',
+                        y: {
+                            formatter: (val) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+                        }
+                    },
+                    grid: { borderColor: '#333' },
+                    theme: { mode: 'dark' }
+                };
+
+                // Clear previous chart and render new one
+                document.getElementById('drip-chart').innerHTML = '';
+                new ApexCharts(document.querySelector("#drip-chart"), options).render();
+            },
+
+            setupAutocomplete: () => {
+                const input = document.getElementById('global-search');
+                const list = document.getElementById('search-results');
+                input.addEventListener('input', (e) => {
+                    const val = e.target.value.toUpperCase();
+                    list.innerHTML = '';
+                    if(!val) { list.classList.remove('active'); return; }
+                    const matches = marketService.db.filter(s => s.s.startsWith(val));
+                    if(matches.length) {
+                        list.classList.add('active');
+                        list.innerHTML = matches.map(s => `<li class="autocomplete-item" onclick="app.loadTicker('${s.s}'); list.classList.remove('active');"><div><span class="fw-bold text-white">${s.s}</span> <span class="text-secondary small ms-2">${s.n}</span></div><span class="ac-badge">${s.type}</span></li>`).join('');
+                    } else list.classList.remove('active');
+                });
+                document.addEventListener('click', e => { if(e.target !== input) list.classList.remove('active'); });
+            },
+
+            startTickerTape: () => {
+                const el = document.getElementById('ticker-content');
+                marketService.db.forEach(s => {
+                    // Use actual simulated change data
+                    const isPositive = s.cp >= 0;
+                    const colorClass = isPositive ? 'text-green' : 'text-red';
+                    const sign = isPositive ? '+' : '';
+                    const changeStr = sign + (s.cp * 100).toFixed(2) + '%';
+                    
+                    el.innerHTML += `<div class="ticker-item"><span class="fw-bold text-white">${s.s}</span> ${s.p.toFixed(2)} <span class="${colorClass}">${changeStr}</span></div>`;
+                });
+                gsap.to("#ticker-content", {x: "-50%", duration: 30, ease: "none", repeat: -1});
+            },
+            
+            loadNewsDetails: (id) => { app.router('noticias'); },
+            
+            login: () => { alert("Login realizado!"); app.router('home'); }
+        };
+
+        document.addEventListener('DOMContentLoaded', app.init);
+    </script>
+</body>
+</html>
