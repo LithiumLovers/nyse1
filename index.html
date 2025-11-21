@@ -282,6 +282,23 @@
         .shine-loader { background: linear-gradient(110deg, #161b22 8%, #1f2937 18%, #161b22 33%); background-size: 200% 100%; animation: 1.5s shine linear infinite; }
         @keyframes shine { to { background-position-x: -200%; } }
 
+        /* Calendar/Events specific */
+        .event-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .event-item:last-child { border-bottom: none; }
+        .event-time { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-secondary); min-width: 50px; }
+        .event-title { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+        .event-meta { display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-secondary); }
+        .impact-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .impact-high { background-color: var(--down-red); box-shadow: 0 0 5px rgba(218, 54, 51, 0.5); }
+        .impact-med { background-color: var(--accent-gold); }
+        .impact-low { background-color: var(--accent-blue); }
+
         /* Calc Styles */
         .form-row-calc { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .form-row-calc label { width: 50%; font-size: 0.9rem; color: var(--text-secondary); }
@@ -401,10 +418,10 @@
                 </div>
             </div>
 
-            <!-- LOWER SECTION -->
+            <!-- LOWER SECTION: Indices, Heatmap, Events -->
             <div class="row g-4">
+                <!-- Left: Indices & News -->
                 <div class="col-lg-4">
-                    <!-- US INDICES WIDGET -->
                     <div class="panel">
                         <div class="panel-header">
                             <h6 class="panel-title">Índices Principais EUA</h6>
@@ -415,7 +432,6 @@
                         </table>
                     </div>
                     
-                    <!-- Latest News -->
                     <div class="panel mt-4">
                         <div class="panel-header">
                             <h6 class="panel-title">Notícias Rápidas</h6>
@@ -424,11 +440,27 @@
                     </div>
                 </div>
 
-                <!-- Right: Heatmap -->
-                <div class="col-lg-8">
+                <!-- Center: Heatmap (Resized) -->
+                <div class="col-lg-4">
                     <div class="panel h-100">
                         <div class="panel-header"><h6 class="panel-title">S&P 500 Heatmap</h6></div>
                         <div class="d-flex flex-wrap gap-1" style="height: 400px; align-content: flex-start;" id="heatmap-container"></div>
+                    </div>
+                </div>
+
+                <!-- Right: Important Events (New) -->
+                <div class="col-lg-4">
+                    <div class="panel h-100">
+                        <div class="panel-header">
+                            <h6 class="panel-title">Agenda Econômica</h6>
+                            <span class="badge bg-warning bg-opacity-10 border border-warning text-warning">HOJE</span>
+                        </div>
+                        <div id="events-list" class="d-flex flex-column">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div class="text-center mt-3">
+                            <button class="btn btn-sm btn-outline-secondary w-100">Ver Calendário Completo</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -614,6 +646,17 @@
                 return [...this.assets].sort(() => 0.5 - Math.random()).slice(0, count); 
             }
 
+            // Economic Events Simulation
+            getEconomicEvents() {
+                return [
+                    { time: '10:00', event: 'Discurso do Fed Chair Powell', impact: 'high', actual: '', forecast: '' },
+                    { time: '11:00', event: 'Vendas de Casas Novas', impact: 'med', actual: '680K', forecast: '675K' },
+                    { time: '11:30', event: 'Estoques de Petróleo Bruto', impact: 'high', actual: '', forecast: '-1.2M' },
+                    { time: '14:00', event: 'Leilão Treasury 5 Anos', impact: 'med', actual: '', forecast: '' },
+                    { time: '16:30', event: 'API Weekly Crude Stock', impact: 'low', actual: '', forecast: '' }
+                ];
+            }
+
             async getHeroContent() {
                 const rawNews = [
                     { title: "Nvidia lidera rali de IA com novos chips.", img: "https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=200", ticker: 'NVDA' },
@@ -768,6 +811,21 @@
                     return `<div onclick="app.loadTicker('${a.s}')" style="flex-grow:1; min-width:${w}px; height:${h}px; background:${color}; display:grid; place-items:center; font-size:0.7rem; font-weight:bold; color:#e6edf3; cursor:pointer;">${a.s}<br>${a.change.toFixed(1)}%</div>`;
                 }).join('');
                 
+                // Economic Events (New Section)
+                const events = service.getEconomicEvents();
+                document.getElementById('events-list').innerHTML = events.map(evt => `
+                    <div class="event-item">
+                        <div class="event-time">${evt.time}</div>
+                        <div style="flex-grow:1; padding: 0 10px;">
+                            <div class="event-title"><span class="impact-dot impact-${evt.impact}"></span>${evt.event}</div>
+                            <div class="event-meta">
+                                <span>Real: <span class="text-white">${evt.actual || '--'}</span></span>
+                                <span>Prev: ${evt.forecast || '--'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
                 app.filterNews('all');
             },
 
