@@ -160,10 +160,13 @@
             display: flex;
             align-items: flex-end;
             border: 1px solid var(--border-color);
+            transition: background-image 0.3s ease-in-out;
         }
+        /* Overlay mais forte para garantir leitura no Hero */
         .hero-main::before {
             content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
-            background: linear-gradient(to top, rgba(11,14,17,0.95) 0%, rgba(11,14,17,0.4) 50%, rgba(11,14,17,0) 100%);
+            background: linear-gradient(to top, rgba(11,14,17,0.95) 0%, rgba(11,14,17,0.6) 60%, rgba(11,14,17,0.1) 100%);
+            z-index: 1;
         }
         .hero-main-content { position: relative; z-index: 2; padding: 2.5rem; width: 100%; }
         
@@ -175,40 +178,43 @@
             overflow-y: auto;
         }
         
+        /* Estilos atualizados para Thumbnails com Background */
         .hero-thumb-item {
             display: flex;
-            align-items: center;
-            background: var(--bg-panel);
+            flex-direction: column;
+            justify-content: flex-end;
+            background-size: cover;
+            background-position: center;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 10px;
+            padding: 15px;
             cursor: pointer;
             transition: all 0.2s;
             flex: 1;
             min-height: 85px;
+            position: relative;
+            overflow: hidden;
         }
-        .hero-thumb-item:hover { 
-            background: var(--bg-hover); 
-            border-color: var(--text-secondary); 
+        /* Overlay no thumbnail para leitura */
+        .hero-thumb-item::before {
+            content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
+            background: linear-gradient(to right, rgba(11,14,17,0.9) 0%, rgba(11,14,17,0.4) 100%);
+            z-index: 1;
+            transition: opacity 0.2s;
         }
+        .hero-thumb-item:hover { border-color: var(--accent-blue); }
+        .hero-thumb-item:hover::before { opacity: 0.8; }
         
-        .thumb-img {
-            width: 80px; height: 60px;
-            border-radius: 4px;
-            object-fit: cover;
-            margin-right: 12px;
-            flex-shrink: 0;
-            border: 1px solid var(--border-color);
-        }
+        .thumb-content { position: relative; z-index: 2; width: 100%; }
         
-        .thumb-content { flex-grow: 1; overflow: hidden; }
         .thumb-title {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            color: var(--text-primary);
+            color: #fff;
             margin-bottom: 6px;
             line-height: 1.3;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
         }
         
         .thumb-ticker-badge {
@@ -218,10 +224,11 @@
             font-size: 0.7rem;
             padding: 2px 6px;
             border-radius: 3px;
-            background: rgba(255,255,255,0.03);
+            background: rgba(0,0,0,0.6);
             border: 1px solid var(--border-color);
+            width: fit-content;
         }
-        .thumb-ticker-badge .val { color: var(--text-primary); margin-right: 5px; font-weight: bold; }
+        .thumb-ticker-badge .val { color: var(--accent-blue); margin-right: 5px; font-weight: bold; }
         
         /* ================== ETF SCROLL ================== */
         .etf-scroll-container {
@@ -375,7 +382,9 @@
             
             <!-- HERO SECTION -->
             <div class="hero-container" id="hero-section">
-                <div class="hero-main shine-loader"></div>
+                <div class="hero-main shine-loader">
+                    <!-- Content injected by JS -->
+                </div>
                 <div class="hero-list">
                      <div class="hero-thumb-item shine-loader"></div>
                      <div class="hero-thumb-item shine-loader"></div>
@@ -510,6 +519,18 @@
         </div>
     </section>
     
+    <!-- Placeholder Pages for specific news logic -->
+    <section id="noticias" class="view-section">
+        <div class="container px-4 text-center mt-5">
+            <h2 class="text-white mb-4">Cobertura Completa</h2>
+            <div class="panel p-5">
+                <h4 class="text-accent-blue mb-3" id="noticia-title">Carregando notícia...</h4>
+                <p class="text-secondary">O conteúdo completo da matéria estaria aqui. Esta é uma demonstração de roteamento.</p>
+                <button class="btn btn-outline-secondary mt-3" onclick="app.router('home')">Voltar ao Terminal</button>
+            </div>
+        </div>
+    </section>
+
     <section id="reits" class="view-section"><div class="container px-4 text-center mt-5"><h3 class="text-white">Visualização de REITs</h3><p class="text-secondary">Use a busca ou clique em um ticker para ver detalhes.</p></div></section>
     <section id="etfs" class="view-section"><div class="container px-4 text-center mt-5"><h3 class="text-white">Visualização de ETFs</h3><p class="text-secondary">Use a busca ou clique em um ticker para ver detalhes.</p></div></section>
 
@@ -657,31 +678,22 @@
                 ];
             }
 
-            async getHeroContent() {
+            // Centralized News Data to be returned as Array
+            getNewsData() {
                 const rawNews = [
-                    { title: "Nvidia lidera rali de IA com novos chips.", img: "https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=200", ticker: 'NVDA' },
-                    { title: "Apple enfrenta desafios regulatórios na UE.", img: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=200", ticker: 'AAPL' },
-                    { title: "Amazon investe em data centers nucleares.", img: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?q=80&w=200", ticker: 'AMZN' },
-                    { title: "Realty Income aumenta dividendos mensais.", img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=200", ticker: 'O' },
-                    { title: "Tesla ajusta produção em Xangai.", img: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=200", ticker: 'TSLA' }
+                    { title: "Mercados EUA: S&P 500 busca máximas com força do setor tecnológico", img: "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1200", ticker: 'SPY' },
+                    { title: "Nvidia lidera rali de IA com novos chips.", img: "https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=600", ticker: 'NVDA' },
+                    { title: "Apple enfrenta desafios regulatórios na UE.", img: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=600", ticker: 'AAPL' },
+                    { title: "Amazon investe em data centers nucleares.", img: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?q=80&w=600", ticker: 'AMZN' },
+                    { title: "Realty Income aumenta dividendos mensais.", img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600", ticker: 'O' },
+                    { title: "Tesla ajusta produção em Xangai.", img: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=600", ticker: 'TSLA' }
                 ];
 
-                const enriched = rawNews.map(n => {
+                // Enrich with asset data
+                return rawNews.map(n => {
                     const asset = this.assets.find(a => a.s === n.ticker);
                     return { ...n, change: asset ? asset.change : 0 };
-                });
-
-                enriched.sort((a,b) => b.change - a.change);
-
-                return {
-                    main: {
-                        title: "Mercados EUA: S&P 500 busca máximas com força do setor tecnológico",
-                        img: "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1200",
-                        ticker: 'SPY',
-                        change: 0.85
-                    },
-                    side: enriched
-                };
+                }).sort((a,b) => b.change - a.change); // Sort by gains
             }
 
             getETFData() {
@@ -699,6 +711,11 @@
         const service = new MarketDataService();
 
         const app = {
+            state: {
+                newsItems: [],
+                currentHeroIndex: 0
+            },
+
             init: async () => {
                 app.router('home');
                 await app.loadDashboard();
@@ -725,40 +742,10 @@
                 document.getElementById('market-status').innerText = "MERCADO EUA ONLINE";
                 document.getElementById('status-dot').className = "fas fa-circle text-success me-2";
 
-                // Hero
-                const heroContent = await service.getHeroContent();
-                const heroMain = document.querySelector('.hero-main');
-                heroMain.style.backgroundImage = `url('${heroContent.main.img}')`;
-                heroMain.innerHTML = `
-                    <div class="hero-main-content">
-                        <div class="badge bg-danger mb-2 border border-danger">MANCHETE</div>
-                        <h2 class="display-6 fw-bold text-white mb-3" style="text-shadow: 0 2px 10px rgba(0,0,0,0.8);">${heroContent.main.title}</h2>
-                        <div class="d-flex align-items-center">
-                            <div class="bg-dark bg-opacity-75 border border-secondary rounded px-3 py-2 d-flex align-items-center gap-3 backdrop-blur">
-                                <span class="fw-bold text-blue">${heroContent.main.ticker}</span>
-                                <span class="font-mono ${heroContent.main.change >= 0 ? 'text-green' : 'text-red'} fw-bold">
-                                    ${heroContent.main.change >= 0 ? '+' : ''}${heroContent.main.change}%
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                const heroList = document.querySelector('.hero-list');
-                heroList.innerHTML = heroContent.side.map(item => `
-                    <div class="hero-thumb-item" onclick="app.loadTicker('${item.ticker}')">
-                        <img src="${item.img}" class="thumb-img" alt="${item.ticker}">
-                        <div class="thumb-content">
-                            <div class="thumb-title">${item.title}</div>
-                            <div class="thumb-ticker-badge">
-                                <span class="val">${item.ticker}</span>
-                                <span class="${item.change >= 0 ? 'text-green' : 'text-red'}">
-                                    ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                // HERO LOGIC
+                app.state.newsItems = service.getNewsData();
+                app.updateHero(0); // Initialize Main Hero with first item
+                app.renderHeroList(); // Render the side thumbnails
 
                 // ETF Section
                 const etfs = service.getETFData();
@@ -782,7 +769,10 @@
                 const renderTable = (list, id) => {
                     document.getElementById(id).innerHTML = list.map(m => `
                         <tr onclick="app.loadTicker('${m.s}')" style="cursor:pointer;">
-                            <td><span class="fw-bold text-white">${m.s}</span></td>
+                            <td>
+                                <span class="fw-bold text-white">${m.s}</span>
+                                <span class="text-secondary small ms-1">(${m.n})</span>
+                            </td>
                             <td class="text-end font-mono text-white">${m.price.toFixed(2)}</td>
                             <td class="text-end font-mono ${m.change>=0?'text-green':'text-red'}">${m.change.toFixed(2)}%</td>
                         </tr>
@@ -827,6 +817,56 @@
                 `).join('');
 
                 app.filterNews('all');
+            },
+
+            // Updated Hero Functions
+            updateHero: (index) => {
+                const item = app.state.newsItems[index];
+                const heroMain = document.querySelector('.hero-main');
+                
+                // Update Background
+                heroMain.style.backgroundImage = `url('${item.img}')`;
+                
+                // Update Content
+                heroMain.innerHTML = `
+                    <div class="hero-main-content">
+                        <div class="badge bg-danger mb-2 border border-danger">MANCHETE</div>
+                        <h2 class="display-6 fw-bold text-white mb-3" style="text-shadow: 0 2px 10px rgba(0,0,0,0.8);">${item.title}</h2>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-dark bg-opacity-75 border border-secondary rounded px-3 py-2 d-flex align-items-center gap-3 backdrop-blur">
+                                <span class="fw-bold text-blue">${item.ticker}</span>
+                                <span class="font-mono ${item.change >= 0 ? 'text-green' : 'text-red'} fw-bold">
+                                    ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Main Hero Click -> Go to News Page
+                heroMain.onclick = () => {
+                    // Simulate setting a specific news item title in the news page
+                    document.getElementById('noticia-title').innerText = item.title;
+                    app.router('noticias');
+                };
+            },
+
+            renderHeroList: () => {
+                const listContainer = document.querySelector('.hero-list');
+                // Render all items (or skip the first one if desired, but rendering all is fine for selection)
+                listContainer.innerHTML = app.state.newsItems.map((item, idx) => `
+                    <div class="hero-thumb-item" style="background-image: url('${item.img}')" onclick="app.updateHero(${idx})">
+                        <div class="thumb-content">
+                            <div class="thumb-title">${item.title}</div>
+                            <div class="thumb-ticker-badge">
+                                <span class="val">${item.ticker}</span>
+                                <span class="${item.change >= 0 ? 'text-green' : 'text-red'}">
+                                    ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
             },
 
             loadTicker: (ticker) => {
