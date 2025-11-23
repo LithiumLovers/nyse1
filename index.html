@@ -162,7 +162,6 @@
             border: 1px solid var(--border-color);
             transition: background-image 0.3s ease-in-out;
         }
-        /* Overlay mais forte para garantir leitura no Hero */
         .hero-main::before {
             content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
             background: linear-gradient(to top, rgba(11,14,17,0.95) 0%, rgba(11,14,17,0.6) 60%, rgba(11,14,17,0.1) 100%);
@@ -170,6 +169,20 @@
         }
         .hero-main-content { position: relative; z-index: 2; padding: 2.5rem; width: 100%; }
         
+        /* Added Summary Style */
+        .hero-summary {
+            color: #cfd7e6; /* Lighter than text-secondary for better readability on dark bg */
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+            max-width: 90%;
+            display: -webkit-box; 
+            -webkit-line-clamp: 3; 
+            -webkit-box-orient: vertical; 
+            overflow: hidden;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
         .hero-list {
             display: flex;
             flex-direction: column;
@@ -178,7 +191,6 @@
             overflow-y: auto;
         }
         
-        /* Estilos atualizados para Thumbnails com Background */
         .hero-thumb-item {
             display: flex;
             flex-direction: column;
@@ -195,7 +207,6 @@
             position: relative;
             overflow: hidden;
         }
-        /* Overlay no thumbnail para leitura */
         .hero-thumb-item::before {
             content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
             background: linear-gradient(to right, rgba(11,14,17,0.9) 0%, rgba(11,14,17,0.4) 100%);
@@ -681,12 +692,42 @@
             // Centralized News Data to be returned as Array
             getNewsData() {
                 const rawNews = [
-                    { title: "Mercados EUA: S&P 500 busca máximas com força do setor tecnológico", img: "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1200", ticker: 'SPY' },
-                    { title: "Nvidia lidera rali de IA com novos chips.", img: "https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=600", ticker: 'NVDA' },
-                    { title: "Apple enfrenta desafios regulatórios na UE.", img: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=600", ticker: 'AAPL' },
-                    { title: "Amazon investe em data centers nucleares.", img: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?q=80&w=600", ticker: 'AMZN' },
-                    { title: "Realty Income aumenta dividendos mensais.", img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600", ticker: 'O' },
-                    { title: "Tesla ajusta produção em Xangai.", img: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=600", ticker: 'TSLA' }
+                    { 
+                        title: "Mercados EUA: S&P 500 busca máximas com força do setor tecnológico", 
+                        img: "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1200", 
+                        ticker: 'SPY', 
+                        summary: "O índice S&P 500 opera em alta nesta manhã, impulsionado pelos ganhos robustos das gigantes de tecnologia e dados de inflação que reforçam a tese de pouso suave da economia americana. Investidores aguardam novos discursos do Fed." 
+                    },
+                    { 
+                        title: "Nvidia lidera rali de IA com novos chips.", 
+                        img: "https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=600", 
+                        ticker: 'NVDA', 
+                        summary: "As ações da Nvidia disparam após o anúncio de sua nova arquitetura de GPU, prometendo dobrar a eficiência em data centers. Analistas revisam preços-alvo para cima em meio à demanda insaciável por IA." 
+                    },
+                    { 
+                        title: "Apple enfrenta desafios regulatórios na UE.", 
+                        img: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=600", 
+                        ticker: 'AAPL', 
+                        summary: "A gigante de Cupertino está sob pressão de reguladores europeus sobre suas práticas na App Store. A notícia traz volatilidade para o papel no curto prazo, apesar dos fundamentos sólidos." 
+                    },
+                    { 
+                        title: "Amazon investe em data centers nucleares.", 
+                        img: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?q=80&w=600", 
+                        ticker: 'AMZN', 
+                        summary: "Buscando energia limpa e constante para seus servidores AWS, a Amazon anuncia parceria bilionária para adquirir energia de novas usinas nucleares modulares nos EUA." 
+                    },
+                    { 
+                        title: "Realty Income aumenta dividendos mensais.", 
+                        img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600", 
+                        ticker: 'O', 
+                        summary: "A 'The Monthly Dividend Company' anuncia mais um aumento em seus proventos, reforçando sua posição como favorita entre investidores de renda passiva em um cenário de juros estabilizados." 
+                    },
+                    { 
+                        title: "Tesla ajusta produção em Xangai.", 
+                        img: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=600", 
+                        ticker: 'TSLA', 
+                        summary: "Tesla reduz temporariamente a produção na Gigafactory da China para atualizações na linha de montagem do Model Y, visando otimizar custos e preparar o lançamento do novo modelo." 
+                    }
                 ];
 
                 // Enrich with asset data
@@ -832,7 +873,11 @@
                     <div class="hero-main-content">
                         <div class="badge bg-danger mb-2 border border-danger">MANCHETE</div>
                         <h2 class="display-6 fw-bold text-white mb-3" style="text-shadow: 0 2px 10px rgba(0,0,0,0.8);">${item.title}</h2>
-                        <div class="d-flex align-items-center">
+                        
+                        <!-- SUMMARY RESTORED HERE -->
+                        <p class="hero-summary text-white text-opacity-75 d-none d-md-block">${item.summary}</p>
+
+                        <div class="d-flex align-items-center mt-3">
                             <div class="bg-dark bg-opacity-75 border border-secondary rounded px-3 py-2 d-flex align-items-center gap-3 backdrop-blur">
                                 <span class="fw-bold text-blue">${item.ticker}</span>
                                 <span class="font-mono ${item.change >= 0 ? 'text-green' : 'text-red'} fw-bold">
