@@ -1,1116 +1,693 @@
-<!DOCTYPE html>
-<html lang="pt-br" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InvestNYSE Pro | Terminal Global EUA</title>
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Search, Moon, Sun, ArrowUp, ArrowDown, TrendingUp, 
+  Newspaper, Calendar, DollarSign, PieChart, BarChart2, 
+  Menu, X, Layers
+} from 'lucide-react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar 
+} from 'recharts';
+
+/**
+ * MOCK DATA SERVICES
+ */
+const MARKET_DATA = {
+  assets: [
+    { s: 'NVDA', n: 'NVIDIA Corp', p: 880.00, type: 'stock', sec: 'Tech' },
+    { s: 'AAPL', n: 'Apple Inc.', p: 175.50, type: 'stock', sec: 'Tech' },
+    { s: 'MSFT', n: 'Microsoft Corp', p: 420.00, type: 'stock', sec: 'Tech' },
+    { s: 'AMZN', n: 'Amazon.com', p: 180.00, type: 'stock', sec: 'Consumo' },
+    { s: 'GOOGL', n: 'Alphabet Inc.', p: 155.00, type: 'stock', sec: 'Tech' },
+    { s: 'TSLA', n: 'Tesla Inc', p: 170.00, type: 'stock', sec: 'Auto' },
+    { s: 'AMD', n: 'Advanced Micro Devices', p: 170.00, type: 'stock', sec: 'Semicon' },
+    { s: 'JPM', n: 'JPMorgan Chase', p: 195.00, type: 'stock', sec: 'Finance' },
+    { s: 'SPY', n: 'SPDR S&P 500', p: 520.00, type: 'etf', sec: 'Index' },
+    { s: 'QQQ', n: 'Invesco QQQ', p: 445.00, type: 'etf', sec: 'Tech' },
+    { s: 'IWM', n: 'Russell 2000', p: 205.00, type: 'etf', sec: 'Small Cap' },
+    { s: 'O', n: 'Realty Income', p: 52.00, type: 'reit', sec: 'Retail' },
+    { s: 'AMT', n: 'American Tower', p: 190.00, type: 'reit', sec: 'Specialty' },
+    { s: 'PLD', n: 'Prologis Inc', p: 125.00, type: 'reit', sec: 'Industrial' },
+  ],
+  indices: [
+    { n: 'S&P 500', v: 5240.50, c: 0.85 },
+    { n: 'Nasdaq 100', v: 18300.10, c: 1.20 },
+    { n: 'Dow Jones', v: 39500.22, c: 0.40 },
+    { n: 'Russell 2000', v: 2080.50, c: -0.25 },
+    { n: 'VIX', v: 13.50, c: -2.10 }
+  ],
+  news: [
+    { 
+      id: 1,
+      title: "Mercados EUA: S&P 500 busca máximas com força do setor tecnológico", 
+      img: "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1200", 
+      ticker: 'SPY', 
+      summary: "O índice S&P 500 opera em alta nesta manhã, impulsionado pelos ganhos robustos das gigantes de tecnologia e dados de inflação que reforçam a tese de pouso suave da economia americana." 
+    },
+    { 
+      id: 2,
+      title: "Nvidia lidera rali de IA com novos chips.", 
+      img: "https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=600", 
+      ticker: 'NVDA', 
+      summary: "As ações da Nvidia disparam após o anúncio de sua nova arquitetura de GPU, prometendo dobrar a eficiência em data centers." 
+    },
+    { 
+      id: 3,
+      title: "Apple enfrenta desafios regulatórios na UE.", 
+      img: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=600", 
+      ticker: 'AAPL', 
+      summary: "A gigante de Cupertino está sob pressão de reguladores europeus sobre suas práticas na App Store." 
+    },
+    { 
+      id: 4,
+      title: "Amazon investe em data centers nucleares.", 
+      img: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?q=80&w=600", 
+      ticker: 'AMZN', 
+      summary: "Buscando energia limpa e constante para seus servidores AWS, a Amazon anuncia parceria bilionária para adquirir energia de novas usinas nucleares." 
+    },
+    { 
+      id: 5,
+      title: "Realty Income aumenta dividendos mensais.", 
+      img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600", 
+      ticker: 'O', 
+      summary: "A 'The Monthly Dividend Company' anuncia mais um aumento em seus proventos, reforçando sua posição como favorita entre investidores de renda passiva." 
+    },
+    { 
+      id: 6,
+      title: "Tesla ajusta produção em Xangai.", 
+      img: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=600", 
+      ticker: 'TSLA', 
+      summary: "Tesla reduz temporariamente a produção na Gigafactory da China para atualizações na linha de montagem do Model Y." 
+    }
+  ],
+  events: [
+    { time: '10:00', event: 'Discurso do Fed Chair Powell', impact: 'high', actual: '', forecast: '' },
+    { time: '11:00', event: 'Vendas de Casas Novas', impact: 'med', actual: '680K', forecast: '675K' },
+    { time: '11:30', event: 'Estoques de Petróleo Bruto', impact: 'high', actual: '', forecast: '-1.2M' },
+    { time: '14:00', event: 'Leilão Treasury 5 Anos', impact: 'med', actual: '', forecast: '' },
+    { time: '16:30', event: 'API Weekly Crude Stock', impact: 'low', actual: '', forecast: '' }
+  ]
+};
+
+// Hook simulando dados em tempo real
+const useMarketData = () => {
+  const [data, setData] = useState(MARKET_DATA);
+
+  useEffect(() => {
+    // Simular inicialização com variação
+    const newData = { ...MARKET_DATA };
+    newData.assets = newData.assets.map(a => ({
+      ...a,
+      change: (Math.random() * 6 - 3),
+      price: a.p * (1 + (Math.random() * 0.05 - 0.025))
+    }));
     
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- ApexCharts -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <!-- GSAP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    // Adicionar variação aos mock news items
+    const newsWithChange = newData.news.map(n => {
+        const asset = newData.assets.find(a => a.s === n.ticker);
+        return { ...n, change: asset ? asset.change : 0 };
+    }).sort((a,b) => b.change - a.change); // Sort by gains
 
-    <style>
-        :root {
-            /* Default Dark Palette (Deep Black/Blue) */
-            --bg-dark: #0b0e11;
-            --bg-panel: #161b22;
-            --bg-hover: #1f2937;
-            --text-primary: #e6edf3;
-            --text-secondary: #8b949e;
-            --border-color: #30363d;
-            
-            /* Accents */
-            --up-green: #238636;
-            --up-green-text: #3fb950;
-            --down-red: #da3633;
-            --down-red-text: #f85149;
-            --accent-blue: #2f81f7;
-            --accent-gold: #d29922;
-            
-            /* Hero Overlay - Dark Mode Specific */
-            --hero-overlay-start: rgba(11,14,17,0.98);
-            --hero-overlay-mid: rgba(11,14,17,0.7);
-            --hero-overlay-end: rgba(11,14,17,0.2);
-        }
+    setData({ ...newData, news: newsWithChange });
+  }, []);
 
-        /* LIGHT MODE PALETTE (GitHub/Linear Style) */
-        [data-bs-theme="light"] {
-            --bg-dark: #f6f8fa;
-            --bg-panel: #ffffff;
-            --bg-hover: #f3f4f6;
-            --text-primary: #24292f;
-            --text-secondary: #57606a;
-            --border-color: #d0d7de;
-            
-            --up-green: #1a7f37;
-            --up-green-text: #1a7f37;
-            --down-red: #cf222e;
-            --down-red-text: #cf222e;
-            --accent-blue: #0969da;
-            
-            /* Hero Overlay - Light Mode Specific (Brighter) */
-            --hero-overlay-start: rgba(255,255,255,0.95);
-            --hero-overlay-mid: rgba(255,255,255,0.6);
-            --hero-overlay-end: rgba(255,255,255,0.1);
-        }
+  return data;
+};
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-primary);
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            transition: background-color 0.3s, color 0.3s;
-        }
+// Componente: Sparkline (Mini Gráfico) via SVG
+const Sparkline = ({ color, isUp }) => {
+  const points = useMemo(() => {
+    return Array.from({ length: 10 }, (_, i) => 
+      `${i * 20},${Math.random() * 30 + 5}`
+    ).join(' ');
+  }, []);
 
-        /* Overrides for Bootstrap to ensure no default backgrounds */
-        .card, .list-group-item, .modal-content {
-            background-color: var(--bg-panel);
-            border-color: var(--border-color);
-            color: var(--text-primary);
-        }
+  return (
+    <svg className="w-full h-10 overflow-visible" viewBox="0 0 180 40" preserveAspectRatio="none">
+      <polyline
+        fill="none"
+        stroke={isUp ? "#22c55e" : "#ef4444"} // Tailwind green-500 / red-500
+        strokeWidth="2"
+        points={points}
+      />
+    </svg>
+  );
+};
 
-        /* Utilities */
-        .font-mono { font-family: 'JetBrains Mono', monospace; letter-spacing: -0.5px; }
-        
-        .text-green { color: var(--up-green-text) !important; }
-        .text-red { color: var(--down-red-text) !important; }
-        
-        /* Subtle backgrounds for badges */
-        .bg-green-subtle { background: rgba(35, 134, 54, 0.2); color: var(--up-green-text); border: 1px solid rgba(35, 134, 54, 0.3); }
-        .bg-red-subtle { background: rgba(218, 54, 51, 0.2); color: var(--down-red-text); border: 1px solid rgba(218, 54, 51, 0.3); }
-        
-        [data-bs-theme="light"] .bg-green-subtle { background: #dafbe1; color: #1a7f37; border-color: rgba(26, 127, 55, 0.2); }
-        [data-bs-theme="light"] .bg-red-subtle { background: #ffebe9; color: #cf222e; border-color: rgba(207, 34, 46, 0.2); }
-
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--bg-dark); }
-        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
-
-        /* Navbar */
-        .navbar {
-            background-color: var(--bg-panel); /* Changed to panel color for solid look in light mode */
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-color);
-            padding: 0.75rem 0;
-            z-index: 1000;
-            transition: background-color 0.3s;
-        }
-        .navbar-brand { font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary) !important; }
-        .navbar-brand span { color: var(--accent-blue); }
-        .nav-link { color: var(--text-secondary) !important; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; cursor: pointer; transition: color 0.2s; }
-        .nav-link:hover, .nav-link.active { color: var(--accent-blue) !important; }
-
-        /* Search */
-        .search-container { position: relative; width: 300px; }
-        .search-input { 
-            background-color: var(--bg-dark); 
-            border: 1px solid var(--border-color); 
-            color: var(--text-primary); 
-            font-size: 0.85rem; 
-        }
-        .search-input:focus { 
-            background-color: var(--bg-dark); 
-            border-color: var(--accent-blue); 
-            color: var(--text-primary); 
-            box-shadow: 0 0 0 2px rgba(47, 129, 247, 0.2); 
-        }
-        
-        .autocomplete-list {
-            position: absolute; top: 100%; left: 0; right: 0; 
-            background: var(--bg-panel); 
-            border: 1px solid var(--border-color);
-            z-index: 9999; list-style: none; padding: 0; margin: 0; 
-            max-height: 300px; overflow-y: auto; display: none;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-        }
-        .autocomplete-list.active { display: block; }
-        .autocomplete-item { 
-            padding: 10px 15px; cursor: pointer; 
-            border-bottom: 1px solid var(--border-color); 
-            display: flex; justify-content: space-between; 
-        }
-        .autocomplete-item:hover { background: var(--bg-hover); }
-
-        /* Ticker Tape */
-        .ticker-wrap { 
-            position: fixed; top: 68px; width: 100%; 
-            background: var(--bg-panel); 
-            border-bottom: 1px solid var(--border-color); 
-            height: 32px; line-height: 32px; z-index: 999; 
-            overflow: hidden; 
-        }
-        .ticker-move { display: inline-block; white-space: nowrap; padding-right: 50px; }
-        .ticker-item { display: inline-block; padding: 0 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; border-right: 1px solid var(--border-color); color: var(--text-secondary); }
-
-        /* View Sections */
-        .view-section { display: none; padding-top: 115px; min-height: 100vh; animation: fadeIn 0.4s ease; }
-        .view-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Panels */
-        .panel { 
-            background: var(--bg-panel); 
-            border: 1px solid var(--border-color); 
-            border-radius: 6px; 
-            padding: 1.25rem; 
-            margin-bottom: 1.25rem; 
-            position: relative; 
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.8rem; }
-        .panel-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }
-
-        /* ================== HERO SECTION ================== */
-        .hero-container {
-            display: grid;
-            grid-template-columns: 2.5fr 1fr;
-            gap: 1rem;
-            height: 500px;
-            margin-bottom: 2rem;
-        }
-
-        .hero-main {
-            position: relative;
-            border-radius: 6px;
-            overflow: hidden;
-            background-size: cover;
-            background-position: center;
-            cursor: pointer;
-            display: flex;
-            align-items: flex-end;
-            border: 1px solid var(--border-color);
-            background-image: url('https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1200');
-        }
-        .hero-main::before {
-            content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
-            background: linear-gradient(to top, var(--hero-overlay-start) 0%, var(--hero-overlay-mid) 50%, var(--hero-overlay-end) 100%);
-            z-index: 1;
-            transition: background 0.3s;
-        }
-        .hero-main-content { position: relative; z-index: 2; padding: 2.5rem; width: 100%; }
-        
-        /* Title & Summary specific for Hero over Image */
-        .hero-title { color: var(--text-primary); text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        .hero-summary {
-            color: var(--text-primary); /* Always primary on hero for contrast with overlay */
-            font-size: 1rem;
-            line-height: 1.5;
-            margin-bottom: 1.5rem;
-            max-width: 90%;
-            display: -webkit-box; 
-            -webkit-line-clamp: 3; 
-            -webkit-box-orient: vertical; 
-            overflow: hidden;
-            opacity: 0.9;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        }
-
-        .hero-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            height: 100%;
-            overflow-y: auto;
-        }
-        
-        .hero-thumb-item {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            background-size: cover;
-            background-position: center;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex: 1;
-            min-height: 85px;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero-thumb-item::before {
-            content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
-            background: linear-gradient(to right, var(--hero-overlay-start) 0%, var(--hero-overlay-end) 100%);
-            z-index: 1;
-            transition: opacity 0.2s;
-        }
-        .hero-thumb-item:hover { border-color: var(--accent-blue); }
-        .hero-thumb-item:hover::before { opacity: 0.8; }
-        
-        .thumb-content { position: relative; z-index: 2; width: 100%; }
-        
-        .thumb-title {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 6px;
-            line-height: 1.3;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-        }
-        
-        .thumb-ticker-badge {
-            display: inline-flex;
-            align-items: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 3px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            width: fit-content;
-        }
-        .thumb-ticker-badge .val { color: var(--accent-blue); margin-right: 5px; font-weight: bold; }
-        
-        /* ================== ETF SCROLL ================== */
-        .etf-scroll-container {
-            display: flex;
-            gap: 1rem;
-            overflow-x: auto;
-            padding-bottom: 10px;
-            margin-bottom: 1.5rem;
-        }
-        
-        .etf-card {
-            min-width: 220px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 1rem;
-            transition: transform 0.2s;
-            cursor: pointer;
-        }
-        .etf-card:hover { transform: translateY(-3px); border-color: var(--accent-blue); }
-        
-        .etf-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-        .etf-symbol { font-weight: 800; font-size: 1.1rem; color: var(--text-primary); }
-        .etf-name { font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block;}
-        .etf-price { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
-        .etf-chart { height: 40px; width: 100%; margin-top: 8px; }
-
-        /* Tables */
-        .table { --bs-table-bg: transparent; --bs-table-color: var(--text-primary); }
-        .table-movers th { 
-            font-size: 0.7rem; 
-            color: var(--text-secondary); 
-            border-bottom: 1px solid var(--border-color); 
-            font-weight: 600; 
-            text-transform: uppercase; 
-        }
-        .table-movers td { 
-            font-size: 0.85rem; 
-            color: var(--text-primary); 
-            border-bottom: 1px solid var(--border-color); 
-            vertical-align: middle; 
-            padding: 10px 8px; 
-        }
-        .table-hover tbody tr:hover { 
-            background-color: var(--bg-hover); 
-            color: var(--text-primary);
-        }
-        .table-movers tr:last-child td { border-bottom: none; }
-
-        .ticker-tag { 
-            font-size: 0.7rem; font-weight: 700; 
-            color: var(--accent-blue); 
-            background: rgba(47, 129, 247, 0.1); 
-            padding: 1px 6px; border-radius: 3px; cursor: pointer; 
-            border: 1px solid rgba(47, 129, 247, 0.2);
-        }
-        
-        .shine-loader { background: linear-gradient(110deg, var(--bg-panel) 8%, var(--bg-hover) 18%, var(--bg-panel) 33%); background-size: 200% 100%; animation: 1.5s shine linear infinite; }
-        @keyframes shine { to { background-position-x: -200%; } }
-
-        /* Calendar/Events specific */
-        .event-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .event-item:last-child { border-bottom: none; }
-        .event-time { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-secondary); min-width: 50px; }
-        .event-title { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
-        .event-meta { display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-secondary); }
-        .impact-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .impact-high { background-color: var(--down-red); box-shadow: 0 0 5px rgba(218, 54, 51, 0.5); }
-        .impact-med { background-color: var(--accent-gold); }
-        .impact-low { background-color: var(--accent-blue); }
-
-        /* Calc Styles */
-        .form-row-calc { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .form-row-calc label { width: 50%; font-size: 0.9rem; color: var(--text-secondary); }
-        .form-row-calc .input-group-calc { width: 45%; display: flex; align-items: center; gap: 5px; }
-        
-        /* Footer */
-        footer {
-            background-color: var(--bg-panel);
-            border-top: 1px solid var(--border-color);
-            padding: 3rem 0 1.5rem;
-            margin-top: 4rem;
-            font-size: 0.9rem;
-        }
-        .footer-brand { font-weight: 800; font-size: 1.5rem; color: var(--text-primary); letter-spacing: -0.5px; margin-bottom: 1rem; display: block; text-decoration: none; }
-        .footer-brand span { color: var(--accent-blue); }
-        .footer-text { color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem; font-size: 0.9rem; }
-        .footer-heading { color: var(--text-primary); font-weight: 700; margin-bottom: 1.2rem; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
-        .footer-links { list-style: none; padding: 0; margin: 0; }
-        .footer-links li { margin-bottom: 0.8rem; }
-        .footer-links a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
-        .footer-links a:hover { color: var(--accent-blue); }
-        .footer-bottom { border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 2rem; text-align: center; color: var(--text-secondary); font-size: 0.8rem; }
-
-        .btn-terminal {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            padding: 0.4rem 1rem;
-            transition: all 0.3s;
-        }
-        .btn-terminal:hover { background: var(--bg-hover); border-color: var(--accent-blue); color: var(--accent-blue); }
-
-        @media(max-width: 992px) { 
-            .hero-container { grid-template-columns: 1fr; height: auto; } 
-            .hero-main { height: 300px; margin-bottom: 1rem; }
-            .hero-list { height: auto; max-height: none; }
-            .hero-thumb-item { margin-bottom: 0.5rem; }
-        }
-    </style>
-</head>
-<body>
-
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg fixed-top">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand" href="#" onclick="app.router('home')">INVEST<span>NYSE</span> PRO</a>
-            <button class="navbar-toggler navbar-dark border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
-                <span class="navbar-toggler-icon" style="filter: invert(1) grayscale(100%) brightness(200%);"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navContent">
-                <ul class="navbar-nav me-auto ms-3">
-                    <li class="nav-item"><a class="nav-link active" onclick="app.router('home')" data-target="home">Terminal</a></li>
-                    <li class="nav-item"><a class="nav-link" onclick="app.router('acoes'); app.loadTicker('NVDA')" data-target="acoes">Ações</a></li>
-                    <li class="nav-item"><a class="nav-link" onclick="app.router('dividendos')" data-target="dividendos">Dividendos</a></li>
-                    <li class="nav-item"><a class="nav-link" onclick="app.router('reits'); app.loadTicker('O')" data-target="reits">REITs</a></li>
-                    <li class="nav-item"><a class="nav-link" onclick="app.router('etfs'); app.loadTicker('SPY')" data-target="etfs">ETFs</a></li>
-                </ul>
-                <div class="d-flex align-items-center gap-3">
-                    <div class="search-container">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control search-input" id="global-search" placeholder="Ticker (Ex: AAPL)..." autocomplete="off">
-                        </div>
-                        <ul class="autocomplete-list" id="search-results"></ul>
-                    </div>
-                    <div class="text-secondary small d-flex align-items-center">
-                        <i class="fas fa-circle text-success me-2" style="font-size: 8px;" id="status-dot"></i>
-                        <span id="market-status" style="font-size: 0.75rem; font-weight: 600;">CONECTANDO</span>
-                    </div>
-                    <button class="btn btn-terminal btn-sm" onclick="app.toggleTheme()" title="Alternar Tema">
-                        <i class="fas fa-moon" id="theme-icon"></i>
-                    </button>
-                    <button class="btn btn-terminal btn-sm" onclick="alert('Login demo')">LOGIN</button>
-                </div>
-            </div>
+// Componente: Card ETF
+const ETFCard = ({ etf, onClick }) => {
+  const isUp = etf.change >= 0;
+  return (
+    <div 
+      onClick={() => onClick(etf.s)}
+      className="min-w-[220px] p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#161b22] hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer shadow-sm"
+    >
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <div className="font-bold text-lg dark:text-white">{etf.s}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 truncate w-24">{etf.n}</div>
         </div>
-    </nav>
-
-    <!-- Ticker Tape -->
-    <div class="ticker-wrap">
-        <div class="ticker-move" id="ticker-content"></div>
+        <span className={`text-xs font-bold px-2 py-1 rounded ${isUp ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+          {isUp ? '+' : ''}{etf.change?.toFixed(2)}%
+        </span>
+      </div>
+      <div className="font-mono font-bold text-xl dark:text-white">${etf.price?.toFixed(2)}</div>
+      <div className="mt-2">
+        <Sparkline isUp={isUp} />
+      </div>
     </div>
+  );
+};
 
-    <!-- ================= PAGE: HOME ================= -->
-    <section id="home" class="view-section active">
-        <div class="container-fluid px-4">
+/**
+ * MAIN APP COMPONENT
+ */
+export default function App() {
+  const [theme, setTheme] = useState('dark');
+  const [view, setView] = useState('home');
+  const [ticker, setTicker] = useState('NVDA');
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  
+  const marketData = useMarketData();
+
+  // Theme Toggle Effect
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // Derived Data Helpers
+  const activeStocks = useMemo(() => [...marketData.assets].sort(() => 0.5 - Math.random()).slice(0, 10), [marketData]);
+  const gainers = useMemo(() => [...marketData.assets].sort((a,b) => b.change - a.change).slice(0, 10), [marketData]);
+  const losers = useMemo(() => [...marketData.assets].sort((a,b) => a.change - b.change).slice(0, 10), [marketData]);
+  const etfs = useMemo(() => marketData.assets.filter(a => a.type === 'etf'), [marketData]);
+  const currentAsset = useMemo(() => marketData.assets.find(a => a.s === ticker) || marketData.assets[0], [marketData, ticker]);
+
+  const handleSearch = (e) => {
+    const term = e.target.value.toUpperCase();
+    setSearchTerm(term);
+    if (term.length > 0) {
+      setSearchResults(marketData.assets.filter(a => a.s.startsWith(term) || a.n.toUpperCase().includes(term)));
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  const selectTicker = (symbol) => {
+    setTicker(symbol);
+    setView('stock');
+    setSearchTerm('');
+    setSearchResults([]);
+    window.scrollTo(0,0);
+  };
+
+  // --- SUB-COMPONENTS (Internal) ---
+
+  const Navbar = () => (
+    <nav className="fixed top-0 w-full z-50 bg-white/90 dark:bg-[#161b22]/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 cursor-pointer" onClick={() => setView('home')}>
+              <span className="text-xl font-extrabold tracking-tight dark:text-white">
+                INVEST<span className="text-blue-500">NYSE</span> PRO
+              </span>
+            </div>
+            <div className="hidden md:block ml-10">
+              <div className="flex items-baseline space-x-4">
+                {['home', 'stock', 'dividends', 'etfs'].map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => {
+                        if (v === 'stock') selectTicker('NVDA');
+                        else setView(v);
+                    }}
+                    className={`px-3 py-2 rounded-md text-sm font-medium uppercase transition-colors ${
+                      view === v 
+                        ? 'text-blue-600 dark:text-blue-400' 
+                        : 'text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400'
+                    }`}
+                  >
+                    {v === 'stock' ? 'Ações' : v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="flex items-center bg-gray-100 dark:bg-[#0d1117] rounded border border-gray-300 dark:border-gray-700 focus-within:border-blue-500 transition-colors">
+                <div className="pl-3 pr-2 text-gray-500"><Search size={14} /></div>
+                <input
+                  type="text"
+                  className="bg-transparent border-none focus:ring-0 text-sm w-32 sm:w-48 py-1.5 text-gray-900 dark:text-gray-100 placeholder-gray-500"
+                  placeholder="Ticker (Ex: AAPL)..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+              </div>
+              {searchResults.length > 0 && (
+                <ul className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-700 rounded shadow-lg max-h-60 overflow-auto z-50">
+                  {searchResults.map(res => (
+                    <li 
+                      key={res.s} 
+                      onClick={() => selectTicker(res.s)}
+                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer flex justify-between items-center border-b border-gray-100 dark:border-gray-800 last:border-0"
+                    >
+                      <span className="font-bold text-sm dark:text-white">{res.s}</span>
+                      <span className="text-xs text-gray-500">{res.type.toUpperCase()}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             
-            <!-- HERO SECTION -->
-            <div class="hero-container" id="hero-section">
-                <div class="hero-main shine-loader">
-                    <!-- Content injected by JS -->
-                </div>
-                <div class="hero-list">
-                     <div class="hero-thumb-item shine-loader"></div>
-                     <div class="hero-thumb-item shine-loader"></div>
-                     <div class="hero-thumb-item shine-loader"></div>
-                     <div class="hero-thumb-item shine-loader"></div>
-                     <div class="hero-thumb-item shine-loader"></div>
-                </div>
+            <button 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
+            >
+              {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+            <div className="hidden sm:flex items-center text-xs font-semibold text-green-600 dark:text-green-400">
+              <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+              ONLINE
             </div>
-
-            <!-- ETF SECTION -->
-            <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0" style="color: var(--text-primary);"><i class="fas fa-layer-group me-2 text-accent-blue"></i>ETFs Globais em Destaque</h5>
-                    <span class="badge bg-dark border border-secondary text-secondary">Mercado EUA</span>
-                </div>
-                <div class="etf-scroll-container" id="etf-container">
-                    <div class="text-secondary small ms-2">Carregando dados...</div>
-                </div>
-            </div>
-
-            <!-- 3 COLUMN DATA SECTION -->
-            <div class="row g-4 mb-4">
-                <div class="col-lg-4">
-                    <div class="panel h-100">
-                        <div class="panel-header"><h6 class="panel-title">Ações Mais Ativas</h6></div>
-                        <table class="table table-movers mb-0 table-hover" id="table-active"></table>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="panel h-100">
-                        <div class="panel-header"><h6 class="panel-title text-green">Maiores Altas (Top 10)</h6></div>
-                        <table class="table table-movers mb-0 table-hover" id="table-gainers"></table>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="panel h-100">
-                        <div class="panel-header"><h6 class="panel-title text-red">Maiores Baixas (Top 10)</h6></div>
-                        <table class="table table-movers mb-0 table-hover" id="table-losers"></table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- LOWER SECTION: Indices, Heatmap, Events -->
-            <div class="row g-4">
-                <!-- Left: Indices & News -->
-                <div class="col-lg-4">
-                    <div class="panel">
-                        <div class="panel-header">
-                            <h6 class="panel-title">Índices Principais EUA</h6>
-                            <span class="badge bg-primary bg-opacity-25 border border-primary text-primary">EUA</span>
-                        </div>
-                        <table class="table table-movers mb-0" id="table-us-indices">
-                            <!-- Populated by JS -->
-                        </table>
-                    </div>
-                    
-                    <div class="panel mt-4">
-                        <div class="panel-header">
-                            <h6 class="panel-title">Notícias Rápidas</h6>
-                        </div>
-                        <div id="home-news-list"></div>
-                    </div>
-                </div>
-
-                <!-- Center: Heatmap (Resized) -->
-                <div class="col-lg-4">
-                    <div class="panel h-100">
-                        <div class="panel-header"><h6 class="panel-title">S&P 500 Heatmap</h6></div>
-                        <div class="d-flex flex-wrap gap-1" style="height: 400px; align-content: flex-start;" id="heatmap-container"></div>
-                    </div>
-                </div>
-
-                <!-- Right: Important Events (New) -->
-                <div class="col-lg-4">
-                    <div class="panel h-100">
-                        <div class="panel-header">
-                            <h6 class="panel-title">Agenda Econômica</h6>
-                            <span class="badge bg-warning bg-opacity-10 border border-warning text-warning">HOJE</span>
-                        </div>
-                        <div id="events-list" class="d-flex flex-column">
-                            <!-- Populated by JS -->
-                        </div>
-                        <div class="text-center mt-3">
-                            <button class="btn btn-sm btn-outline-secondary w-100">Ver Calendário Completo</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
-    </section>
+      </div>
+    </nav>
+  );
 
-    <!-- ================= PAGE: AÇÕES / REITS / ETFS (GENERIC DETAILS) ================= -->
-    <section id="acoes" class="view-section">
-        <div class="container px-4">
-            <div class="panel p-4">
-                <div class="d-flex justify-content-between align-items-start mb-4">
-                    <div>
-                        <h1 class="fw-bold mb-0" style="color: var(--text-primary);" id="acoes-ticker-name">--</h1>
-                        <div class="text-secondary font-mono small mb-2" id="acoes-exchange">--</div>
-                        <div class="d-flex align-items-baseline gap-3">
-                            <span class="display-4 fw-bold font-mono" style="color: var(--text-primary);" id="acoes-price">--</span>
-                            <span class="fs-5 fw-bold font-mono" id="acoes-change-pct">--</span>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <div class="badge bg-dark border border-secondary p-2 mb-2">
-                            <div class="small text-secondary">RSI (14)</div>
-                            <div class="fw-bold" id="acoes-rsi">--</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="acoes-main-chart" style="min-height: 400px;"></div>
-
-                <div class="row mt-4">
-                    <div class="col-md-6">
-                        <h6 class="text-secondary fw-bold mb-3">Fundamentos</h6>
-                        <table class="table table-movers">
-                            <tbody>
-                                <tr><td>Setor</td><td class="text-end text-white" id="acoes-sector">--</td></tr>
-                                <tr><td>P/L (P/E)</td><td class="text-end text-white font-mono" id="acoes-pe">--</td></tr>
-                                <tr><td>Yield</td><td class="text-end text-white font-mono" id="acoes-yield">--</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-secondary fw-bold mb-3">Perfil</h6>
-                        <p class="small text-secondary" id="acoes-profile">--</p>
-                    </div>
-                </div>
+  const TickerTape = () => (
+    <div className="fixed top-16 w-full z-40 bg-white dark:bg-[#161b22] border-b border-gray-200 dark:border-gray-800 h-8 overflow-hidden flex items-center">
+      <div className="animate-marquee whitespace-nowrap flex items-center">
+        {[...marketData.assets, ...marketData.assets].map((asset, i) => {
+          const isUp = asset.change >= 0;
+          return (
+            <div key={i} className="inline-flex items-center mx-4 text-xs font-mono">
+              <span className="font-bold mr-2 dark:text-white">{asset.s}</span>
+              <span className={isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                {asset.price?.toFixed(2)} ({isUp ? '+' : ''}{asset.change?.toFixed(2)}%)
+              </span>
             </div>
-        </div>
-    </section>
-    
-    <!-- Placeholder Pages for specific news logic -->
-    <section id="noticias" class="view-section">
-        <div class="container px-4 text-center mt-5">
-            <h2 class="mb-4" style="color: var(--text-primary);">Cobertura Completa</h2>
-            <div class="panel p-5">
-                <h4 class="text-accent-blue mb-3" id="noticia-title">Carregando notícia...</h4>
-                <p class="text-secondary">O conteúdo completo da matéria estaria aqui. Esta é uma demonstração de roteamento.</p>
-                <button class="btn btn-outline-secondary mt-3" onclick="app.router('home')">Voltar ao Terminal</button>
-            </div>
-        </div>
-    </section>
+          )
+        })}
+      </div>
+    </div>
+  );
 
-    <section id="reits" class="view-section"><div class="container px-4 text-center mt-5"><h3 class="text-white">Visualização de REITs</h3><p class="text-secondary">Use a busca ou clique em um ticker para ver detalhes.</p></div></section>
-    <section id="etfs" class="view-section"><div class="container px-4 text-center mt-5"><h3 class="text-white">Visualização de ETFs</h3><p class="text-secondary">Use a busca ou clique em um ticker para ver detalhes.</p></div></section>
+  const MarketTable = ({ title, data, titleColor = "text-gray-900 dark:text-white" }) => (
+    <div className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden h-full flex flex-col">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+        <h3 className={`text-sm font-bold uppercase tracking-wide ${titleColor}`}>{title}</h3>
+      </div>
+      <div className="overflow-auto flex-grow">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 dark:bg-[#0d1117]">
+            <tr>
+              <th className="px-4 py-2 text-left font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">Ativo</th>
+              <th className="px-4 py-2 text-right font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">Preço</th>
+              <th className="px-4 py-2 text-right font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">%</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            {data.map((item) => {
+              const isUp = item.change >= 0;
+              return (
+                <tr 
+                  key={item.s} 
+                  onClick={() => selectTicker(item.s)}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                >
+                  <td className="px-4 py-2.5">
+                    <span className="font-bold dark:text-white">{item.s}</span>
+                    <span className="text-xs text-gray-500 ml-1 hidden sm:inline">({item.n.substring(0,8)}..)</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono dark:text-gray-300">{item.price?.toFixed(2)}</td>
+                  <td className={`px-4 py-2.5 text-right font-mono font-medium ${isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {isUp ? '+' : ''}{item.change?.toFixed(2)}%
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
-    <!-- ================= PAGE: DIVIDENDOS ================= -->
-    <section id="dividendos" class="view-section">
-        <div class="container px-4">
-            <div class="row g-4">
-                <div class="col-lg-4">
-                    <div class="panel h-100">
-                        <h6 class="panel-title mb-3">Simulador DRIP</h6>
-                        <form onsubmit="event.preventDefault(); app.runCalc();">
-                            <div class="form-row-calc">
-                                <label>Investimento ($):</label>
-                                <div class="input-group-calc"><input type="number" class="form-control search-input text-end" id="calc-initial-investment" value="10000"></div>
-                            </div>
-                            <div class="form-row-calc">
-                                <label>Preço Ação ($):</label>
-                                <div class="input-group-calc"><input type="number" class="form-control search-input text-end" id="calc-share-price" value="150.00"></div>
-                            </div>
-                            <div class="form-row-calc">
-                                <label>Dividendo/Ação:</label>
-                                <div class="input-group-calc"><input type="number" class="form-control search-input text-end" id="calc-dividend-amount" value="3.50"></div>
-                            </div>
-                            <div class="form-row-calc">
-                                <label>Anos:</label>
-                                <div class="input-group-calc"><input type="number" class="form-control search-input text-end" id="calc-years-input" value="10"></div>
-                            </div>
-                            <button type="submit" class="btn btn-terminal w-100 py-2 mt-4">CALCULAR</button>
-                        </form>
-                        <div class="mt-4 text-center">
-                            <div class="small text-secondary">Total Projetado</div>
-                            <div class="fs-4 fw-bold text-green" id="calc-result">$ 0,00</div>
-                        </div>
-                        <div id="drip-chart" class="mt-3"></div>
-                    </div>
-                </div>
-                <div class="col-lg-8 d-flex align-items-center justify-content-center text-secondary">
-                    <div class="text-center">
-                        <i class="fas fa-chart-pie fa-3x mb-3 opacity-25"></i>
-                        <p>Selecione os parâmetros ao lado para projetar o crescimento dos dividendos (USD).</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  const HeroSection = () => {
+    // Current Hero Item (Static Background) based on selection
+    const activeNews = marketData.news[heroIndex] || marketData.news[0];
+    const isUp = activeNews.change >= 0;
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const cssColors = { green: '#238636', red: '#da3633', blue: '#2f81f7', text: '#8b949e', bg: '#0b0e11' };
-
-        /**
-         * SIMULATION ENGINE & API INTEGRATION
-         */
-        class MarketDataService {
-            constructor() {
-                // Base Expandida de Ativos EUA
-                this.assets = [
-                    { s: 'NVDA', n: 'NVIDIA Corp', p: 880.00, type: 'stock', sec: 'Tech' },
-                    { s: 'AAPL', n: 'Apple Inc.', p: 175.50, type: 'stock', sec: 'Tech' },
-                    { s: 'MSFT', n: 'Microsoft Corp', p: 420.00, type: 'stock', sec: 'Tech' },
-                    { s: 'AMZN', n: 'Amazon.com', p: 180.00, type: 'stock', sec: 'Consumo' },
-                    { s: 'GOOGL', n: 'Alphabet Inc.', p: 155.00, type: 'stock', sec: 'Tech' },
-                    { s: 'META', n: 'Meta Platforms', p: 490.00, type: 'stock', sec: 'Tech' },
-                    { s: 'TSLA', n: 'Tesla Inc', p: 170.00, type: 'stock', sec: 'Auto' },
-                    { s: 'AMD', n: 'Advanced Micro Devices', p: 170.00, type: 'stock', sec: 'Semicon' },
-                    { s: 'NFLX', n: 'Netflix Inc', p: 610.00, type: 'stock', sec: 'Media' },
-                    { s: 'INTC', n: 'Intel Corp', p: 42.00, type: 'stock', sec: 'Semicon' },
-                    { s: 'JPM', n: 'JPMorgan Chase', p: 195.00, type: 'stock', sec: 'Finance' },
-                    { s: 'V', n: 'Visa Inc.', p: 280.00, type: 'stock', sec: 'Finance' },
-                    { s: 'KO', n: 'Coca-Cola Co', p: 60.00, type: 'stock', sec: 'Staples' },
-                    { s: 'MCD', n: 'McDonald\'s', p: 270.00, type: 'stock', sec: 'Cyclical' },
-                    { s: 'DIS', n: 'Disney', p: 115.00, type: 'stock', sec: 'Media' },
-                    { s: 'XOM', n: 'Exxon Mobil', p: 118.00, type: 'stock', sec: 'Energy' },
-                    { s: 'JNJ', n: 'Johnson & Johnson', p: 155.00, type: 'stock', sec: 'Health' },
-                    { s: 'PFE', n: 'Pfizer Inc', p: 27.00, type: 'stock', sec: 'Health' },
-                    { s: 'O', n: 'Realty Income', p: 52.00, type: 'reit', sec: 'Retail REIT' },
-                    { s: 'AMT', n: 'American Tower', p: 190.00, type: 'reit', sec: 'Specialty' },
-                    { s: 'PLD', n: 'Prologis Inc', p: 125.00, type: 'reit', sec: 'Industrial' },
-                    { s: 'SPG', n: 'Simon Property', p: 150.00, type: 'reit', sec: 'Retail' },
-                    { s: 'CCI', n: 'Crown Castle', p: 105.00, type: 'reit', sec: 'Specialty' },
-                    { s: 'VICI', n: 'VICI Properties', p: 29.00, type: 'reit', sec: 'Hotel' },
-                    { s: 'SPY', n: 'SPDR S&P 500', p: 520.00, type: 'etf', sec: 'Index' },
-                    { s: 'QQQ', n: 'Invesco QQQ', p: 445.00, type: 'etf', sec: 'Tech' },
-                    { s: 'IWM', n: 'Russell 2000 ETF', p: 205.00, type: 'etf', sec: 'Small Cap' },
-                    { s: 'DIA', n: 'SPDR Dow Jones', p: 390.00, type: 'etf', sec: 'Large Cap' },
-                    { s: 'SMH', n: 'VanEck Semi ETF', p: 225.00, type: 'etf', sec: 'Semicon' },
-                    { s: 'XLE', n: 'Energy Select', p: 95.00, type: 'etf', sec: 'Energy' },
-                    { s: 'GLD', n: 'SPDR Gold', p: 215.00, type: 'etf', sec: 'Commodity' },
-                    { s: 'VNQ', n: 'Vanguard Real Estate', p: 84.00, type: 'etf', sec: 'REITs' }
-                ];
-                
-                this.indicesEUA = [
-                    { n: 'S&P 500', v: 5240.50, c: 0.85 },
-                    { n: 'Nasdaq 100', v: 18300.10, c: 1.20 },
-                    { n: 'Dow Jones', v: 39500.22, c: 0.40 },
-                    { n: 'Russell 2000', v: 2080.50, c: -0.25 },
-                    { n: 'VIX', v: 13.50, c: -2.10 }
-                ];
-
-                // Gerar variação aleatória para cada ativo
-                this.assets.forEach(a => {
-                    a.change = (Math.random() * 6 - 3); 
-                    if (a.s === 'NVDA') a.change = 4.5;
-                    if (a.s === 'TSLA') a.change = -2.1;
-                    a.price = a.p * (1 + a.change/100);
-                });
-            }
-
-            async fetchRealRates() {
-                try {
-                    const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-USD');
-                    const data = await res.json();
-                    return [
-                        { n: 'USD/BRL', v: data.USDBRL.bid, c: parseFloat(data.USDBRL.pctChange) },
-                        { n: 'EUR/BRL', v: data.EURBRL.bid, c: parseFloat(data.EURBRL.pctChange) }
-                    ];
-                } catch(e) { console.error(e); return []; }
-            }
-            async fetchRealCrypto() {
-                try {
-                    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
-                    const data = await res.json();
-                    return [
-                        { n: 'BTC/USD', v: data.bitcoin.usd.toLocaleString(), c: data.bitcoin.usd_24h_change },
-                        { n: 'ETH/USD', v: data.ethereum.usd.toLocaleString(), c: data.ethereum.usd_24h_change }
-                    ];
-                } catch(e) { console.error(e); return []; }
-            }
-
-            getTopGainers(count = 10) { return [...this.assets].sort((a,b) => b.change - a.change).slice(0, count); }
-            getTopLosers(count = 10) { return [...this.assets].sort((a,b) => a.change - b.change).slice(0, count); }
-            getActiveStocks(count = 10) { 
-                return [...this.assets].sort(() => 0.5 - Math.random()).slice(0, count); 
-            }
-
-            // Economic Events Simulation
-            getEconomicEvents() {
-                return [
-                    { time: '10:00', event: 'Discurso do Fed Chair Powell', impact: 'high', actual: '', forecast: '' },
-                    { time: '11:00', event: 'Vendas de Casas Novas', impact: 'med', actual: '680K', forecast: '675K' },
-                    { time: '11:30', event: 'Estoques de Petróleo Bruto', impact: 'high', actual: '', forecast: '-1.2M' },
-                    { time: '14:00', event: 'Leilão Treasury 5 Anos', impact: 'med', actual: '', forecast: '' },
-                    { time: '16:30', event: 'API Weekly Crude Stock', impact: 'low', actual: '', forecast: '' }
-                ];
-            }
-
-            // Centralized News Data to be returned as Array
-            getNewsData() {
-                const rawNews = [
-                    { 
-                        title: "Mercados EUA: S&P 500 busca máximas com força do setor tecnológico", 
-                        img: "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1200", 
-                        ticker: 'SPY', 
-                        summary: "O índice S&P 500 opera em alta nesta manhã, impulsionado pelos ganhos robustos das gigantes de tecnologia e dados de inflação que reforçam a tese de pouso suave da economia americana. Investidores aguardam novos discursos do Fed." 
-                    },
-                    { 
-                        title: "Nvidia lidera rali de IA com novos chips.", 
-                        img: "https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=600", 
-                        ticker: 'NVDA', 
-                        summary: "As ações da Nvidia disparam após o anúncio de sua nova arquitetura de GPU, prometendo dobrar a eficiência em data centers. Analistas revisam preços-alvo para cima em meio à demanda insaciável por IA." 
-                    },
-                    { 
-                        title: "Apple enfrenta desafios regulatórios na UE.", 
-                        img: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=600", 
-                        ticker: 'AAPL', 
-                        summary: "A gigante de Cupertino está sob pressão de reguladores europeus sobre suas práticas na App Store. A notícia traz volatilidade para o papel no curto prazo, apesar dos fundamentos sólidos." 
-                    },
-                    { 
-                        title: "Amazon investe em data centers nucleares.", 
-                        img: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?q=80&w=600", 
-                        ticker: 'AMZN', 
-                        summary: "Buscando energia limpa e constante para seus servidores AWS, a Amazon anuncia parceria bilionária para adquirir energia de novas usinas nucleares modulares nos EUA." 
-                    },
-                    { 
-                        title: "Realty Income aumenta dividendos mensais.", 
-                        img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600", 
-                        ticker: 'O', 
-                        summary: "A 'The Monthly Dividend Company' anuncia mais um aumento em seus proventos, reforçando sua posição como favorita entre investidores de renda passiva em um cenário de juros estabilizados." 
-                    },
-                    { 
-                        title: "Tesla ajusta produção em Xangai.", 
-                        img: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=600", 
-                        ticker: 'TSLA', 
-                        summary: "Tesla reduz temporariamente a produção na Gigafactory da China para atualizações na linha de montagem do Model Y, visando otimizar custos e preparar o lançamento do novo modelo." 
-                    }
-                ];
-
-                // Enrich with asset data
-                return rawNews.map(n => {
-                    const asset = this.assets.find(a => a.s === n.ticker);
-                    return { ...n, change: asset ? asset.change : 0 };
-                }).sort((a,b) => b.change - a.change); // Sort by gains
-            }
-
-            getETFData() {
-                return this.assets.filter(a => a.type === 'etf').map(e => {
-                    e.chartData = Array.from({length: 10}, () => Math.random() * 10 + e.p);
-                    return e;
-                });
-            }
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8 h-[500px]">
+        {/* Main Hero - Static Background Image Style */}
+        <div 
+          className="lg:col-span-2 relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-cover bg-center group cursor-pointer"
+          style={{ backgroundImage: `url('${activeNews.img}')` }}
+          onClick={() => alert(`Navegando para notícia: ${activeNews.title}`)}
+        >
+          {/* Static Gradient Overlay for Text Readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent z-10"></div>
+          
+          <div className="absolute bottom-0 left-0 right-0 p-8 z-20">
+            <span className="inline-block px-2 py-1 mb-3 text-xs font-bold text-white bg-red-600 rounded uppercase tracking-wider">Manchete</span>
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
+              {activeNews.title}
+            </h1>
+            <p className="text-gray-200 text-sm md:text-base mb-4 line-clamp-2 max-w-2xl drop-shadow-md">
+              {activeNews.summary}
+            </p>
             
-            getAssetDetails(ticker) {
-                return this.assets.find(a => a.s === ticker) || {s:ticker, n:'Unknown', p:0, change:0};
-            }
-        }
+            <div className="inline-flex items-center bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded px-3 py-2">
+              <span className="font-bold text-blue-400 mr-3">{activeNews.ticker}</span>
+              <span className={`font-mono font-bold ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+                {isUp ? '+' : ''}{activeNews.change?.toFixed(2)}%
+              </span>
+            </div>
+          </div>
+        </div>
 
-        const service = new MarketDataService();
+        {/* Side List */}
+        <div className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-lg flex flex-col overflow-hidden">
+          <div className="flex-grow overflow-y-auto">
+            {marketData.news.map((item, idx) => (
+              <div 
+                key={item.id}
+                onClick={() => setHeroIndex(idx)}
+                className={`relative p-4 border-b border-gray-200 dark:border-gray-800 cursor-pointer transition-colors h-1/5 min-h-[90px] flex flex-col justify-end bg-cover bg-center group`}
+                style={{ backgroundImage: `url('${item.img}')` }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 to-gray-900/40 z-0"></div>
+                <div className="relative z-10">
+                  <h4 className={`text-xs font-semibold mb-2 line-clamp-2 text-gray-100 group-hover:text-blue-400 transition-colors ${heroIndex === idx ? 'text-blue-400' : ''}`}>
+                    {item.title}
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-blue-300 bg-gray-900/60 px-1.5 py-0.5 rounded border border-gray-700">{item.ticker}</span>
+                    <span className={`text-[10px] font-mono ${item.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {item.change >= 0 ? '+' : ''}{item.change?.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-        const app = {
-            state: {
-                newsItems: [],
-                currentHeroIndex: 0
-            },
+  // --- VIEWS ---
 
-            init: async () => {
-                app.router('home');
-                await app.loadDashboard();
-                app.setupSearch();
-                app.startTickerTape();
-            },
+  const HomeView = () => (
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-20 animate-fade-in">
+      <HeroSection />
 
-            toggleTheme: () => {
-                const html = document.documentElement;
-                const current = html.getAttribute('data-bs-theme');
-                const next = current === 'dark' ? 'light' : 'dark';
-                html.setAttribute('data-bs-theme', next);
-                
-                const icon = document.getElementById('theme-icon');
-                if(next === 'light') {
-                    icon.classList.remove('fa-moon');
-                    icon.classList.add('fa-sun');
-                } else {
-                    icon.classList.remove('fa-sun');
-                    icon.classList.add('fa-moon');
-                }
+      {/* ETF Section */}
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold flex items-center gap-2 dark:text-white">
+            <Layers className="text-blue-500" size={20} />
+            ETFs Globais em Destaque
+          </h2>
+          <span className="text-xs font-medium text-gray-500 uppercase border border-gray-300 dark:border-gray-700 px-2 py-1 rounded">Mercado EUA</span>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+          {etfs.map(etf => <ETFCard key={etf.s} etf={etf} onClick={selectTicker} />)}
+        </div>
+      </div>
 
-                // Charts need re-render to pick up new text colors
-                // Simple strategy: Check which page is active and reload data if needed
-                // For now, just refreshing home if active is good enough for demo
-                if(document.getElementById('home').classList.contains('active')) {
-                    app.loadDashboard(); 
-                } else if (document.getElementById('acoes').classList.contains('active')) {
-                    // If detailed view is active, would ideally reload chart there
-                    // For this single file demo, user can navigate back/forth or we add explicit redraw
-                    const ticker = document.getElementById('acoes-ticker-name').innerText.split(' - ')[0];
-                    if(ticker && ticker !== '--') app.loadTicker(ticker);
-                }
-            },
+      {/* Data Grid 3 Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="h-96"><MarketTable title="Ações Mais Ativas" data={activeStocks} /></div>
+        <div className="h-96"><MarketTable title="Maiores Altas (Top 10)" data={gainers} titleColor="text-green-600 dark:text-green-400" /></div>
+        <div className="h-96"><MarketTable title="Maiores Baixas (Top 10)" data={losers} titleColor="text-red-600 dark:text-red-400" /></div>
+      </div>
 
-            router: (page) => {
-                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-                const targetId = ['acoes','reits','etfs'].includes(page) ? 'acoes' : page;
-                const el = document.getElementById(targetId);
-                if(el) el.classList.add('active');
-                
-                document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-                document.querySelector(`[data-target="${page}"]`)?.classList.add('active');
-                window.scrollTo(0,0);
-            },
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Indices */}
+        <div className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+          <div className="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-800 pb-2">
+            <h3 className="font-bold text-sm uppercase dark:text-white">Principais Índices</h3>
+            <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded">EUA</span>
+          </div>
+          <table className="w-full text-sm">
+            <tbody>
+              {marketData.indices.map(idx => (
+                <tr key={idx.n} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                  <td className="py-2 font-bold dark:text-gray-200">{idx.n}</td>
+                  <td className="py-2 text-right font-mono dark:text-gray-300">{idx.v.toFixed(2)}</td>
+                  <td className={`py-2 text-right font-mono ${idx.c >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {idx.c > 0 ? '+' : ''}{idx.c}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-            loadDashboard: async () => {
-                document.getElementById('market-status').innerText = "ATUALIZANDO...";
-                
-                const [rates, crypto] = await Promise.all([service.fetchRealRates(), service.fetchRealCrypto()]);
-                
-                document.getElementById('market-status').innerText = "MERCADO EUA ONLINE";
-                document.getElementById('status-dot').className = "fas fa-circle text-success me-2";
+        {/* Heatmap */}
+        <div className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+          <h3 className="font-bold text-sm uppercase mb-4 dark:text-white">S&P 500 Heatmap</h3>
+          <div className="flex flex-wrap content-start gap-1 h-64 overflow-hidden">
+            {marketData.assets.map(a => {
+              const color = a.change >= 0 
+                ? `rgba(34, 197, 94, ${0.3 + Math.abs(a.change)/10})` 
+                : `rgba(239, 68, 68, ${0.3 + Math.abs(a.change)/10})`;
+              const width = Math.max(15, Math.random() * 30) + '%';
+              return (
+                <div 
+                  key={a.s}
+                  onClick={() => selectTicker(a.s)}
+                  style={{ width, backgroundColor: color, height: '60px' }}
+                  className="flex-grow flex flex-col items-center justify-center cursor-pointer hover:brightness-110 transition-all text-xs font-bold text-white shadow-sm"
+                >
+                  <span>{a.s}</span>
+                  <span className="text-[10px]">{a.change?.toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-                // HERO LOGIC
-                app.state.newsItems = service.getNewsData();
-                app.updateHero(0); // Initialize Main Hero with first item
-                app.renderHeroList(); // Render the side thumbnails
+        {/* Economic Events */}
+        <div className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+          <div className="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-800 pb-2">
+            <h3 className="font-bold text-sm uppercase dark:text-white">Agenda Econômica</h3>
+            <span className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-0.5 rounded">HOJE</span>
+          </div>
+          <div className="space-y-3">
+            {marketData.events.map((evt, i) => (
+              <div key={i} className="flex items-center text-sm border-b border-gray-100 dark:border-gray-800 pb-2 last:border-0 last:pb-0">
+                <span className="font-mono text-gray-500 w-12 text-xs">{evt.time}</span>
+                <div className="flex-grow ml-2">
+                  <div className="flex items-center">
+                    <span className={`w-2 h-2 rounded-full mr-2 ${evt.impact === 'high' ? 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]' : evt.impact === 'med' ? 'bg-yellow-500' : 'bg-blue-500'}`}></span>
+                    <span className="font-medium dark:text-gray-200 line-clamp-1">{evt.event}</span>
+                  </div>
+                  <div className="ml-4 text-xs text-gray-400 mt-0.5">
+                    Forecast: {evt.forecast || '--'} <span className="mx-1">|</span> Actual: <span className="text-white">{evt.actual || '--'}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 
-                // ETF Section
-                const etfs = service.getETFData();
-                document.getElementById('etf-container').innerHTML = etfs.map(etf => {
-                    const isUp = etf.change >= 0;
-                    const points = etf.chartData.map((p, i) => `${i * 22},${30 - (p - etf.p + 5) * 2}`).join(' ');
-                    return `
-                    <div class="etf-card" onclick="app.loadTicker('${etf.s}')">
-                        <div class="etf-header">
-                            <div><div class="etf-symbol">${etf.s}</div><span class="etf-name">${etf.n}</span></div>
-                            <span class="badge ${isUp ? 'bg-green-subtle' : 'bg-red-subtle'}">${isUp?'+':''}${etf.change.toFixed(2)}%</span>
-                        </div>
-                        <div class="etf-price">$${etf.price.toFixed(2)}</div>
-                        <svg class="etf-chart" viewBox="0 0 200 40">
-                            <polyline fill="none" stroke="${isUp ? cssColors.green : cssColors.red}" stroke-width="2" points="${points}" />
-                        </svg>
-                    </div>`;
-                }).join('');
+  const StockView = () => {
+    const isUp = currentAsset.change >= 0;
+    const chartData = Array.from({length: 30}, (_, i) => ({
+      date: i,
+      value: currentAsset.price * (1 + Math.sin(i) * 0.05 + Math.random() * 0.02)
+    }));
 
-                // Tables
-                const renderTable = (list, id) => {
-                    document.getElementById(id).innerHTML = list.map(m => `
-                        <tr onclick="app.loadTicker('${m.s}')" style="cursor:pointer;">
-                            <td>
-                                <span class="fw-bold" style="color: var(--text-primary);">${m.s}</span>
-                                <span class="text-secondary small ms-1">(${m.n})</span>
-                            </td>
-                            <td class="text-end font-mono" style="color: var(--text-primary);">${m.price.toFixed(2)}</td>
-                            <td class="text-end font-mono ${m.change>=0?'text-green':'text-red'}">${m.change.toFixed(2)}%</td>
-                        </tr>
-                    `).join('');
-                };
-                renderTable(service.getActiveStocks(10), 'table-active');
-                renderTable(service.getTopGainers(10), 'table-gainers');
-                renderTable(service.getTopLosers(10), 'table-losers');
+    return (
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-20 animate-fade-in">
+        <button onClick={() => setView('home')} className="mb-4 text-sm text-gray-500 hover:text-blue-500 flex items-center">
+          ← Voltar ao Terminal
+        </button>
+        
+        <div className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-lg p-6 mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold dark:text-white flex items-center gap-3">
+                {currentAsset.s} 
+                <span className="text-lg font-normal text-gray-500">{currentAsset.n}</span>
+              </h1>
+              <div className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                <span className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">{currentAsset.type.toUpperCase()}</span>
+                <span>•</span>
+                <span>{currentAsset.sec}</span>
+                <span>•</span>
+                <span>NASDAQ</span>
+              </div>
+            </div>
+            <div className="mt-4 md:mt-0 text-right">
+              <div className="text-4xl font-mono font-bold dark:text-white">${currentAsset.price.toFixed(2)}</div>
+              <div className={`text-lg font-bold flex items-center justify-end ${isUp ? 'text-green-500' : 'text-red-500'}`}>
+                {isUp ? <ArrowUp size={20} /> : <ArrowDown size={20} />}
+                {currentAsset.change.toFixed(2)}%
+              </div>
+            </div>
+          </div>
 
-                // US Indices Table
-                document.getElementById('table-us-indices').innerHTML = service.indicesEUA.map(i => `
-                    <tr>
-                        <td><span class="fw-bold" style="color: var(--text-primary);">${i.n}</span></td>
-                        <td class="text-end font-mono" style="color: var(--text-primary);">${i.v.toLocaleString()}</td>
-                        <td class="text-end font-mono ${i.c>=0?'text-green':'text-red'}">${i.c>=0?'+':''}${i.c.toFixed(2)}%</td>
-                    </tr>
-                `).join('');
+          <div className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} vertical={false} />
+                <XAxis dataKey="date" hide />
+                <YAxis domain={['auto', 'auto']} orientation="right" tick={{fill: theme === 'dark' ? '#9ca3af' : '#4b5563'}} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', borderColor: '#374151', color: theme === 'dark' ? '#fff' : '#000' }}
+                  itemStyle={{ color: theme === 'dark' ? '#fff' : '#000' }}
+                  formatter={(val) => [`$${val.toFixed(2)}`, 'Preço']}
+                />
+                <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
 
-                // Heatmap
-                const hm = document.getElementById('heatmap-container');
-                hm.innerHTML = service.assets.map(a => {
-                    const w = Math.max(40, Math.random() * 100);
-                    const h = Math.max(40, Math.random() * 80);
-                    const op = 0.2 + (Math.abs(a.change)/5);
-                    const color = a.change >= 0 ? `rgba(35, 134, 54, ${op})` : `rgba(218, 54, 51, ${op})`;
-                    return `<div onclick="app.loadTicker('${a.s}')" style="flex-grow:1; min-width:${w}px; height:${h}px; background:${color}; display:grid; place-items:center; font-size:0.7rem; font-weight:bold; color:#e6edf3; cursor:pointer;">${a.s}<br>${a.change.toFixed(1)}%</div>`;
-                }).join('');
-                
-                // Economic Events (New Section)
-                const events = service.getEconomicEvents();
-                document.getElementById('events-list').innerHTML = events.map(evt => `
-                    <div class="event-item">
-                        <div class="event-time">${evt.time}</div>
-                        <div style="flex-grow:1; padding: 0 10px;">
-                            <div class="event-title"><span class="impact-dot impact-${evt.impact}"></span>${evt.event}</div>
-                            <div class="event-meta">
-                                <span>Real: <span style="color: var(--text-primary);">${evt.actual || '--'}</span></span>
-                                <span>Prev: ${evt.forecast || '--'}</span>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+            {[
+              { l: 'Capitalização', v: '2.5T USD' },
+              { l: 'P/L (P/E)', v: '65.2x' },
+              { l: 'Div. Yield', v: '0.02%' },
+              { l: 'Vol (Méd)', v: '45M' }
+            ].map((stat) => (
+              <div key={stat.l}>
+                <div className="text-xs text-gray-500 uppercase">{stat.l}</div>
+                <div className="font-mono font-bold dark:text-gray-200">{stat.v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    );
+  };
 
-                app.filterNews('all');
-            },
+  const DividendView = () => {
+    const [inv, setInv] = useState(10000);
+    const [price, setPrice] = useState(150);
+    const [div, setDiv] = useState(3.50);
+    const [years, setYears] = useState(10);
+    const [result, setResult] = useState(0);
+    const [chartData, setChartData] = useState([]);
 
-            // Updated Hero Functions
-            updateHero: (index) => {
-                const item = app.state.newsItems[index];
-                const heroMain = document.querySelector('.hero-main');
-                
-                // NOTE: Background image is intentionally NOT updated to keep it static
-                // heroMain.style.backgroundImage = `url('${item.img}')`; 
-                
-                // Update Content
-                heroMain.innerHTML = `
-                    <div class="hero-main-content">
-                        <div class="badge bg-danger mb-2 border border-danger">MANCHETE</div>
-                        <h2 class="hero-title display-6 fw-bold mb-3">${item.title}</h2>
-                        
-                        <!-- SUMMARY RESTORED HERE -->
-                        <p class="hero-summary d-none d-md-block">${item.summary}</p>
+    useEffect(() => {
+      let shares = inv / price;
+      let total = 0;
+      const data = [];
+      for(let i = 1; i <= years; i++) {
+        const annualDiv = shares * div;
+        const newShares = annualDiv / price;
+        shares += newShares;
+        total = shares * price;
+        data.push({ year: `Ano ${i}`, value: total });
+      }
+      setResult(total);
+      setChartData(data);
+    }, [inv, price, div, years]);
 
-                        <div class="d-flex align-items-center mt-3">
-                            <div class="bg-dark bg-opacity-75 border border-secondary rounded px-3 py-2 d-flex align-items-center gap-3 backdrop-blur">
-                                <span class="fw-bold text-blue">${item.ticker}</span>
-                                <span class="font-mono ${item.change >= 0 ? 'text-green' : 'text-red'} fw-bold">
-                                    ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                // Main Hero Click -> Go to News Page
-                heroMain.onclick = () => {
-                    // Simulate setting a specific news item title in the news page
-                    document.getElementById('noticia-title').innerText = item.title;
-                    app.router('noticias');
-                };
-            },
+    return (
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-20 animate-fade-in">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-1 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-bold mb-6 dark:text-white flex items-center gap-2">
+              <DollarSign className="text-green-500" /> Simulador DRIP
+            </h2>
+            <div className="space-y-4">
+              {[
+                { l: 'Investimento ($)', v: inv, s: setInv },
+                { l: 'Preço Ação ($)', v: price, s: setPrice },
+                { l: 'Dividendo/Ação', v: div, s: setDiv },
+                { l: 'Anos', v: years, s: setYears }
+              ].map((f) => (
+                <div key={f.l}>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{f.l}</label>
+                  <input 
+                    type="number" 
+                    value={f.v} 
+                    onChange={e => f.s(parseFloat(e.target.value))}
+                    className="w-full bg-gray-50 dark:bg-[#0d1117] border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none dark:text-white text-right font-mono"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 text-center pt-6 border-t border-gray-200 dark:border-gray-800">
+              <div className="text-xs text-gray-500 uppercase tracking-wider">Patrimônio Projetado</div>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">
+                ${result.toLocaleString('en-US', {maximumFractionDigits: 0})}
+              </div>
+            </div>
+          </div>
+          
+          <div className="md:col-span-2 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-gray-800 rounded-lg p-6 flex flex-col">
+            <h3 className="text-sm font-bold uppercase text-gray-500 mb-4">Crescimento Patrimonial (Reinvestimento)</h3>
+            <div className="flex-grow min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} vertical={false} />
+                  <XAxis dataKey="year" tick={{fill: theme === 'dark' ? '#9ca3af' : '#4b5563', fontSize: 12}} />
+                  <YAxis tick={{fill: theme === 'dark' ? '#9ca3af' : '#4b5563', fontSize: 12}} />
+                  <Tooltip 
+                    cursor={{fill: theme === 'dark' ? '#1f2937' : '#f3f4f6'}}
+                    contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', borderColor: '#374151', color: theme === 'dark' ? '#fff' : '#000' }}
+                    formatter={(val) => [`$${val.toFixed(0)}`, 'Valor']}
+                  />
+                  <Bar dataKey="value" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  };
 
-            renderHeroList: () => {
-                const listContainer = document.querySelector('.hero-list');
-                // Render all items (or skip the first one if desired, but rendering all is fine for selection)
-                listContainer.innerHTML = app.state.newsItems.map((item, idx) => `
-                    <div class="hero-thumb-item" style="background-image: url('${item.img}')" onclick="app.updateHero(${idx})">
-                        <div class="thumb-content">
-                            <div class="thumb-title">${item.title}</div>
-                            <div class="thumb-ticker-badge">
-                                <span class="val">${item.ticker}</span>
-                                <span class="${item.change >= 0 ? 'text-green' : 'text-red'}">
-                                    ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            },
+  return (
+    <div className={`min-h-screen bg-gray-50 dark:bg-[#0b0e11] text-gray-900 dark:text-gray-200 font-sans transition-colors duration-300`}>
+      <Navbar />
+      <TickerTape />
+      
+      {view === 'home' && <HomeView />}
+      {view === 'stock' && <StockView />}
+      {view === 'dividendos' && <DividendView />}
+      {(view === 'etfs' || view === 'reits') && (
+        <div className="mt-32 text-center text-gray-500">
+          <h2 className="text-2xl font-bold mb-2">Módulo {view.toUpperCase()}</h2>
+          <p>Utilize a busca ou navegue pela Home para ver detalhes.</p>
+        </div>
+      )}
 
-            loadTicker: (ticker) => {
-                const asset = service.getAssetDetails(ticker);
-                let route = 'acoes';
-                if(asset.type === 'reit') route = 'reits';
-                if(asset.type === 'etf') route = 'etfs';
-                
-                app.router(route); 
-                
-                const viewId = 'acoes'; 
-                if(route !== 'acoes') {
-                    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-                    document.getElementById('acoes').classList.add('active');
-                }
-
-                document.getElementById('acoes-ticker-name').innerText = `${asset.s} - ${asset.n}`;
-                document.getElementById('acoes-exchange').innerText = `${asset.type.toUpperCase()} • Setor: ${asset.sec}`;
-                document.getElementById('acoes-price').innerText = asset.price.toFixed(2);
-                
-                const color = asset.change >= 0 ? 'text-green' : 'text-red';
-                document.getElementById('acoes-change-pct').innerText = `${asset.change>=0?'+':''}${asset.change.toFixed(2)}%`;
-                document.getElementById('acoes-change-pct').className = `fs-5 fw-bold font-mono ${color}`;
-
-                document.getElementById('acoes-sector').innerText = asset.sec;
-                document.getElementById('acoes-pe').innerText = (Math.random()*30+10).toFixed(1) + 'x';
-                document.getElementById('acoes-yield').innerText = (Math.random()*5).toFixed(2) + '%';
-                document.getElementById('acoes-rsi').innerText = Math.floor(Math.random()*60+20);
-                document.getElementById('acoes-profile').innerText = `Ativo negociado no mercado americano. Dados simulados de alta fidelidade para demonstração.`;
-
-                const data = Array.from({length: 30}, (_,i) => [Date.now()-i*86400000, asset.price * (1 + Math.sin(i)*0.05)]);
-                document.getElementById('acoes-main-chart').innerHTML = "";
-                // Determine chart colors based on current theme
-                const isLight = document.documentElement.getAttribute('data-bs-theme') === 'light';
-                const chartTextColor = isLight ? cssColors.text : '#8b949e';
-                const chartGridColor = isLight ? '#d0d7de' : '#30363d';
-
-                new ApexCharts(document.querySelector("#acoes-main-chart"), {
-                    series: [{name: ticker, data: data}],
-                    chart: {type:'area', height:400, background:'transparent', toolbar:{show:false}},
-                    theme: {mode: isLight ? 'light' : 'dark'},
-                    stroke: {curve:'smooth', width:2, colors:[cssColors.blue]},
-                    fill: {type:'gradient', gradient:{opacityFrom:0.5, opacityTo:0.1}},
-                    xaxis: {type:'datetime', labels:{style:{colors: chartTextColor}}},
-                    yaxis: {labels:{style:{colors: chartTextColor}, formatter:(v)=>v.toFixed(2)}},
-                    grid: {borderColor: chartGridColor}
-                }).render();
-            },
-
-            startTickerTape: () => {
-                const el = document.getElementById('ticker-content');
-                const items = service.assets.map(a => `<div class="ticker-item"><span class="fw-bold" style="color: var(--text-primary);">${a.s}</span> <span class="${a.change>=0?'text-green':'text-red'}">${a.price.toFixed(2)} (${a.change.toFixed(2)}%)</span></div>`);
-                el.innerHTML = items.join('') + items.join('');
-                gsap.to("#ticker-content", {x: "-50%", duration: 60, ease: "none", repeat: -1});
-            },
-
-            setupSearch: () => {
-                const inp = document.getElementById('global-search');
-                const list = document.getElementById('search-results');
-                inp.addEventListener('input', (e) => {
-                    const val = e.target.value.toUpperCase();
-                    if(!val) { list.classList.remove('active'); return; }
-                    const match = service.assets.filter(a => a.s.startsWith(val));
-                    list.innerHTML = match.map(a => `<li class="autocomplete-item" onclick="app.loadTicker('${a.s}'); document.getElementById('search-results').classList.remove('active');"><span><b>${a.s}</b> ${a.n}</span> <span class="badge bg-dark border border-secondary">${a.type.toUpperCase()}</span></li>`).join('');
-                    list.classList.add('active');
-                });
-                document.addEventListener('click', (e) => { if(e.target !== inp) list.classList.remove('active'); });
-            },
-            
-            filterNews: (cat) => {
-                const news = [
-                    {t: 'Fed mantém taxas inalteradas e prevê cortes para 2025.', time: '10m'},
-                    {t: 'Resultados da Nvidia impulsionam setor de semicondutores.', time: '32m'},
-                    {t: 'Preços ao consumidor nos EUA sobem acima do esperado.', time: '1h'},
-                    {t: 'Setor de REITs reage a novas projeções de juros.', time: '2h'}
-                ];
-                document.getElementById('home-news-list').innerHTML = news.map(n => `
-                    <div class="d-flex gap-3 mb-3 border-bottom border-secondary border-opacity-25 pb-3">
-                        <div class="text-center" style="width: 50px;">
-                            <div class="small text-secondary">${n.time}</div>
-                            <i class="fas fa-newspaper text-accent-blue mt-1"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1" style="font-size: 0.85rem; cursor: pointer; color: var(--text-primary);" onclick="app.router('noticias')">${n.t}</h6>
-                        </div>
-                    </div>
-                `).join('');
-            },
-
-            runCalc: () => {
-                const P0 = parseFloat(document.getElementById('calc-initial-investment').value);
-                const P_Share = parseFloat(document.getElementById('calc-share-price').value);
-                const Div = parseFloat(document.getElementById('calc-dividend-amount').value);
-                const Years = parseInt(document.getElementById('calc-years-input').value);
-                let shares = P0 / P_Share;
-                let totalVal = 0;
-                const chartData = [];
-                
-                for(let i=0; i<Years; i++) {
-                    let annualDivs = shares * Div * 4; 
-                    let newShares = annualDivs / P_Share;
-                    shares += newShares;
-                    totalVal = shares * P_Share;
-                    chartData.push(totalVal);
-                }
-                
-                document.getElementById('calc-result').innerText = totalVal.toLocaleString('en-US', {style:'currency', currency:'USD'});
-                
-                document.getElementById('drip-chart').innerHTML = "";
-                
-                const isLight = document.documentElement.getAttribute('data-bs-theme') === 'light';
-                
-                new ApexCharts(document.querySelector("#drip-chart"), {
-                    series: [{ name: 'Valor Patrimonial', data: chartData.map(v=>v.toFixed(2)) }],
-                    chart: { type: 'bar', height: 200, background: 'transparent', toolbar: {show:false} },
-                    theme: { mode: isLight ? 'light' : 'dark' },
-                    colors: [cssColors.green],
-                    xaxis: { categories: Array.from({length:Years}, (_,i)=> `Ano ${i+1}`) }
-                }).render();
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', app.init);
-    </script>
-</body>
-</html>
+      {/* Footer */}
+      <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#161b22] py-8 mt-12">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <div className="text-xl font-extrabold tracking-tight dark:text-white mb-2">
+            INVEST<span className="text-blue-500">NYSE</span> PRO
+          </div>
+          <p className="text-sm text-gray-500">Terminal Financeiro Profissional - Dados Simulados</p>
+          <div className="mt-4 text-xs text-gray-600 dark:text-gray-400">
+            &copy; 2024 InvestNYSE Pro. Todos os direitos reservados.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
